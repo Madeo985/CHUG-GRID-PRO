@@ -1,17 +1,6 @@
-"use client";
-
-import { useMemo, useState } from "react";
-
-type Step = "" | "X" | "U" | "G" | "A";
-
-const cycle: Step[] = ["", "X", "U", "G", "A"];
-
-const stepLabels = [
-  "1", "e", "&", "a",
-  "2", "e", "&", "a",
-  "3", "e", "&", "a",
-  "4", "e", "&", "a"
-];
+const cells = Array.from({ length: 64 }, (_, i) =>
+  [0, 2, 5, 8, 13, 18, 21, 26, 31, 35, 39, 44, 48, 52, 57, 61].includes(i)
+);
 
 const features = [
   ["Orbit View", "Pulse, riff cycle and bar realignment shown as rotating musical timelines."],
@@ -22,47 +11,7 @@ const features = [
   ["Dice Engine", "Roll 3–6 rhythmic values and generate polymetric loops instantly."]
 ];
 
-function nextStep(value: Step): Step {
-  const index = cycle.indexOf(value);
-  return cycle[(index + 1) % cycle.length];
-}
-
 export default function Page() {
-  const [steps, setSteps] = useState<Step[]>(
-    Array.from({ length: 64 }, (_, i) =>
-      [0, 2, 5, 8, 13, 18, 21, 26, 31, 35, 39, 44, 48, 52, 57, 61].includes(i)
-        ? i % 5 === 0 ? "U" : "X"
-        : ""
-    )
-  );
-
-  const activeCount = useMemo(() => steps.filter(Boolean).length, [steps]);
-
-  function toggleStep(index: number) {
-    setSteps((current) =>
-      current.map((value, i) => (i === index ? nextStep(value) : value))
-    );
-  }
-
-  function clearGrid() {
-    setSteps(Array.from({ length: 64 }, () => ""));
-  }
-
-  function generateDiceRiff() {
-    const dice = Array.from({ length: 6 }, () => Math.floor(Math.random() * 6) + 1);
-    const next = Array.from({ length: 64 }, () => "") as Step[];
-    let cursor = 0;
-    let diceIndex = 0;
-
-    while (cursor < next.length) {
-      next[cursor] = cursor % 5 === 0 ? "U" : "X";
-      cursor += dice[diceIndex % dice.length];
-      diceIndex++;
-    }
-
-    setSteps(next);
-  }
-
   return (
     <main className="site">
       <nav className="nav">
@@ -93,7 +42,7 @@ export default function Page() {
         <div className="heroInstrument" id="app">
           <div className="topStrip">
             <span>ORBIT ENGINE</span>
-            <span>23/16 · REALIGN 7 BARS · {activeCount} HITS</span>
+            <span>23/16 · REALIGN 7 BARS</span>
           </div>
 
           <div className="orbitalStage">
@@ -114,34 +63,15 @@ export default function Page() {
           <div className="controlDock">
             <div><label>BPM</label><b>120</b></div>
             <div><label>Target</label><b>7 bars</b></div>
-            <button type="button" onClick={generateDiceRiff}>GENERATE</button>
-            <button type="button" onClick={clearGrid}>CLEAR</button>
+            <button>GENERATE</button>
+            <button>ROLL</button>
           </div>
 
-          <div className="gridToolbar">
-            <span>Click cells: empty → X → U → G → A</span>
-            <span>X chug · U upstroke · G ghost · A accent</span>
-          </div>
-
-          <div className="beatLabels">
-            {Array.from({ length: 4 }, (_, bar) => (
-              <div key={bar} className="beatLabel">
-                {stepLabels.map((label, i) => <span key={`${bar}-${i}`}>{label}</span>)}
-              </div>
-            ))}
-          </div>
-
-          <div className="miniGrid interactiveGrid">
-            {steps.map((value, i) => (
-              <button
-                type="button"
-                key={i}
-                onClick={() => toggleStep(i)}
-                className={`cell stepButton ${value ? "active" : ""} ${value ? `type${value}` : ""}`}
-                aria-label={`Step ${i + 1}`}
-              >
-                {value}
-              </button>
+          <div className="miniGrid">
+            {cells.map((active, i) => (
+              <span key={i} className={active ? "cell active" : "cell"}>
+                {active ? (i % 5 === 0 ? "U" : "X") : ""}
+              </span>
             ))}
           </div>
         </div>
