@@ -26,7 +26,7 @@ const meters: Record<MeterId, { label: string; barSteps: number; beatLabels: str
 };
 const groupValues = [2, 3, 4, 5, 6, 7, 9, 11];
 const stepCycle: Step[] = ["", "X", "U", "G", "A"];
-const labels = ["1", "e", "&", "a", "2", "e", "&", "a", "3", "e", "&", "a", "4", "e", "&", "a"];
+
 
 const features = [
   ["Orbit View", "Pulse, riff cycle and bar realignment shown as rotating musical timelines."],
@@ -57,14 +57,14 @@ function fitStepsToLoop(steps: Step[], loopLength: number): Step[] {
   return Array.from({ length }, (_, index) => steps[index % steps.length]);
 }
 
-function makeGroupedPattern(groups: number[], loopLength: number): Step[] {
+function makeGroupedPattern(groups: number[], loopLength: number, barSteps: number): Step[] {
   const next = Array.from({ length: loopLength }, () => "") as Step[];
   let cursor = 0;
   let groupIndex = 0;
 
   while (cursor < next.length) {
     next[cursor] =
-      cursor % BAR_STEPS === 0
+      cursor % barSteps === 0
         ? "A"
         : groupIndex % 5 === 3
           ? "G"
@@ -85,7 +85,11 @@ function parseSequence(input: string): number[] {
     .map((value) => Number.parseInt(value, 10))
     .filter((value) => Number.isFinite(value) && value > 0 && value <= 32);
 }
+function isMeterId(value: unknown): value is MeterId {
+  return value === "3/4" || value === "4/4" || value === "5/4" || value === "6/8" || value === "7/8" || value === "9/8";
+}
 function isStep(value: unknown): value is Step {
+        
   return value === "" || value === "X" || value === "U" || value === "G" || value === "A";
 }
 
@@ -123,6 +127,7 @@ function decodePreset(value: string): RiffPreset | null {
       version: 1,
       bpm: clampNumber(parsed.bpm, 120, 40, 260),
       targetBars: clampNumber(parsed.targetBars, 7, 1, 32),
+            meter: isMeterId(parsed.meter) ? parsed.meter : "4/4",
       metronome: Boolean(parsed.metronome),
       diceResult: sanitizeNumberList(parsed.diceResult, [5, 3, 4, 6, 2, 5]),
       diceRollCount: clampNumber(parsed.diceRollCount, 6, 3, 6),
@@ -222,12 +227,13 @@ export default function Page() {
   const loopLengthRef = useRef(loopLength);
   const bpmRef = useRef(bpm);
   const metronomeRef = useRef(metronome);
+    const barStepsRef = useRef(barSteps);
 
   const activeCount = useMemo(() => loopSteps.filter(Boolean).length, [loopSteps]);
-  const currentBar = Math.floor(stepIndex / BAR_STEPS) + 1;
-  const currentSixteenth = (stepIndex % BAR_STEPS) + 1;
+  const currentBar = Math.floor(stepIndex / barSteps) + 1;
+  const currentSixteenth = (stepIndex % barSteps) + 1;
   const playAngle = (stepIndex / Math.max(loopLength, 1)) * 360;
-  const pulseAngle = ((stepIndex % BAR_STEPS) / BAR_STEPS) * 360;
+  const pulseAngle = ((stepIndex % barSteps) / barSteps) * 360;
   const riffAngle = ((stepIndex % 23) / 23) * 360;
   const riffAnalysis = useMemo(() => {
   const hits = loopSteps
@@ -243,7 +249,7 @@ export default function Page() {
   const groupingSum = grouping.reduce((sum, value) => sum + value, 0);
   const accentCount = loopSteps.filter((value) => value === "A").length;
   const ghostCount = loopSteps.filter((value) => value === "G").length;
-  const downbeatHits = loopSteps.filter((value, index) => value && index % BAR_STEPS === 0).length;
+  const downbeatHits = loopSteps.filter((value, index) => value && index % barSteps === 0).length;
 
   return {
     density: Math.round((activeCount / Math.max(loopLength, 1)) * 100),
@@ -253,12 +259,13 @@ export default function Page() {
     ghostCount,
     downbeatHits
   };
-}, [activeCount, loopLength, loopSteps, sequenceInput]);
+}, [activeCount, barSteps, loopLength, loopSteps, sequenceInput]);
 
   useEffect(() => { loopStepsRef.current = loopSteps; }, [loopSteps]);
   useEffect(() => { loopLengthRef.current = loopLength; }, [loopLength]);
   useEffect(() => { bpmRef.current = bpm; }, [bpm]);
   useEffect(() => { metronomeRef.current = metronome; }, [metronome]);
+    useEffect(() => { barStepsRef.current = barSteps; }, [barSteps]);
   useEffect(() => {
   const shared = new URLSearchParams(window.location.search).get("riff");
   if (!shared) return;
@@ -272,6 +279,7 @@ export default function Page() {
   stop();
   setBpm(preset.bpm);
   setTargetBars(preset.targetBars);
+    setMeter(preset.meter);
   setMetronome(preset.metronome);
   setDiceResult(preset.diceResult);
   setDiceRollCount(preset.diceRollCount);
@@ -313,7 +321,7 @@ export default function Page() {
     const index = nextStepRef.current % loopLengthRef.current;
     const value = loopStepsRef.current[index] ?? "";
     const isQuarter = index % 4 === 0;
-    const isOne = index % BAR_STEPS === 0;
+    const isOne = index % barStepsRef.current === 0;
 
     playHit(ctx, value, metronomeRef.current, isQuarter, isOne);
     setStepIndex(index);
@@ -350,7 +358,7 @@ export default function Page() {
     const ctx = ensureAudio();
     const index = nextStepRef.current % loopLengthRef.current;
     const value = loopStepsRef.current[index] ?? "";
-    playHit(ctx, value, metronome, index % 4 === 0, index % BAR_STEPS === 0);
+    playHit(ctx, value, metronome, index % 4 === 0, index % barSteps === 0);
     setStepIndex(index);
     nextStepRef.current = (index + 1) % loopLengthRef.current;
   }
@@ -369,7 +377,7 @@ export default function Page() {
     stop();
     setDiceResult(groups);
     setSequenceInput(groups.join(" "));
-    setSteps(makeGroupedPattern(groups, loopLength));
+    setSteps(makeGroupedPattern(groups, loopLength, barSteps));
     resetPlayhead();
   }
 
@@ -443,10 +451,11 @@ function addGhostNotes() {
 
   async function copyRiffLink() {
   const preset: RiffPreset = {
-    version: 1,
-    bpm,
-    targetBars: safeTargetBars,
-    metronome,
+  version: 1,
+  bpm,
+  targetBars: safeTargetBars,
+  meter,
+  metronome,
     diceResult,
     diceRollCount,
     sequenceInput,
@@ -508,14 +517,14 @@ function addGhostNotes() {
             {loopSteps.map((value, i) => value && (
               <i
                 key={i}
-                className={`orbDot type${value} ${i === 0 ? "cycleStart" : ""} ${i % BAR_STEPS === 0 ? "barStart" : ""} ${i === stepIndex ? "current" : ""}`}
+                className={`orbDot type${value} ${i === 0 ? "cycleStart" : ""} ${i % barSteps === 0 ? "barStart" : ""} ${i === stepIndex ? "current" : ""}`}
                 style={{ transform: `rotate(${(i / loopLength) * 360}deg) translateY(var(--orbit-dot-radius))` }}
               />
             ))}
             <div className="centerReadout">
               <span>BAR</span>
               <strong>{currentBar} / {safeTargetBars}</strong>
-              <em>step {currentSixteenth}/16 · loop {loopLength} steps</em>
+            <em>step {currentSixteenth}/{barSteps} · loop {loopLength} steps</em>
             </div>
           </div>
 
@@ -527,6 +536,14 @@ function addGhostNotes() {
             <div className="bpmControl">
               <label>Target bars</label>
               <input type="number" min="1" max="32" value={targetBars} onChange={(e) => setTargetBars(Number(e.target.value))} />
+            </div>
+                        <div className="bpmControl">
+              <label>Time</label>
+              <select value={meter} onChange={(e) => setMeter(e.target.value as MeterId)}>
+                {Object.keys(meters).map((meterId) => (
+                  <option key={meterId} value={meterId}>{meterId}</option>
+                ))}
+              </select>
             </div>
             <button type="button" className="playButton" onClick={play}>PLAY</button>
             <button type="button" onClick={stop}>STOP</button>
@@ -604,13 +621,12 @@ function addGhostNotes() {
 
           <div className="beatLabels">
             {Array.from({ length: safeTargetBars }, (_, bar) => (
-              <div key={bar} className="beatLabel">
+            <div key={bar} className="beatLabel" style={{ gridTemplateColumns: `repeat(${barSteps}, minmax(24px, 1fr))` }}>
                 {labels.map((label, i) => <span key={`${bar}-${i}`}>{label}</span>)}
               </div>
             ))}
           </div>
-
-                  <div className="miniGrid interactiveGrid">
+<div className="miniGrid interactiveGrid" style={{ gridTemplateColumns: `repeat(${barSteps}, minmax(24px, 1fr))` }}>
             {loopSteps.map((value, i) => (
               <button
                 type="button"
