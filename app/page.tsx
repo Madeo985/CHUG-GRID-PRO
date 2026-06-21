@@ -402,9 +402,67 @@ export default function Page() {
             ))}
           </div>
 
-          <div className="miniGrid interactiveGrid">
+                  <div className="miniGrid interactiveGrid">
             {loopSteps.map((value, i) => (
               <button
                 type="button"
                 key={i}
-                on
+                onClick={() => toggleStep(i)}
+                className={`cell stepButton ${value ? "active" : ""} ${value ? `type${value}` : ""} ${i === stepIndex ? "playhead" : ""}`}
+                aria-label={`Step ${i + 1}`}
+              >
+                {value}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section" id="features">
+        <div className="sectionHeader">
+          <span>PREMIUM WORKFLOW</span>
+          <h2>Built like an instrument, not a calculator.</h2>
+        </div>
+        <div className="featureGrid">
+          {features.map(([title, text]) => (
+            <article className="featureCard" key={title}>
+              <div className="featureIcon" />
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="showcase">
+        <div>
+          <span className="kicker">MESHUGGAH MODE</span>
+          <h2>Tell it where to return. Let it generate the chaos.</h2>
+          <p>
+            Pick a target realignment — 5, 7, 11 bars — and CHUG-GRID proposes playable picking grids.
+          </p>
+        </div>
+        <div className="statPanel">
+          <div><span>Riff Cycle</span><b>23/16</b></div>
+          <div><span>Bar Cycle</span><b>16/16</b></div>
+          <div><span>Current Bar</span><b>{currentBar}/{safeTargetBars}</b></div>
+        </div>
+      </section>
+
+      <section className="pricing" id="pricing">
+        <div className="priceCard">
+          <span>FREE</span>
+          <h3>Sketch</h3>
+          <p>Orbit, grid, dice and basic playback.</p>
+          <button>Start free</button>
+        </div>
+        <div className="priceCard pro">
+          <span>PRO</span>
+          <h3>Studio</h3>
+          <p>Audio Detective, advanced export, cloud presets and AI riff tools.</p>
+          <button>Coming soon</button>
+        </div>
+      </section>
+    </main>
+  );
+}
