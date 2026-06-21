@@ -215,6 +215,31 @@ export default function Page() {
   const playAngle = (stepIndex / Math.max(loopLength, 1)) * 360;
   const pulseAngle = ((stepIndex % BAR_STEPS) / BAR_STEPS) * 360;
   const riffAngle = ((stepIndex % 23) / 23) * 360;
+  const riffAnalysis = useMemo(() => {
+  const hits = loopSteps
+    .map((value, index) => value ? index : -1)
+    .filter((index) => index >= 0);
+
+  const gaps = hits.map((hit, index) => {
+    const nextHit = hits[(index + 1) % hits.length] ?? hit;
+    return (nextHit - hit + loopLength) % loopLength || loopLength;
+  });
+
+  const grouping = parseSequence(sequenceInput);
+  const groupingSum = grouping.reduce((sum, value) => sum + value, 0);
+  const accentCount = loopSteps.filter((value) => value === "A").length;
+  const ghostCount = loopSteps.filter((value) => value === "G").length;
+  const downbeatHits = loopSteps.filter((value, index) => value && index % BAR_STEPS === 0).length;
+
+  return {
+    density: Math.round((activeCount / Math.max(loopLength, 1)) * 100),
+    longestGap: gaps.length ? Math.max(...gaps) : 0,
+    groupingSum,
+    accentCount,
+    ghostCount,
+    downbeatHits
+  };
+}, [activeCount, loopLength, loopSteps, sequenceInput]);
 
   useEffect(() => { loopStepsRef.current = loopSteps; }, [loopSteps]);
   useEffect(() => { loopLengthRef.current = loopLength; }, [loopLength]);
@@ -535,6 +560,28 @@ function addGhostNotes() {
             </div>
             <button type="button" onClick={shiftForward}>SHIFT +1</button>
             <button type="button" onClick={addGhostNotes}>ADD GHOSTS</button>
+          </div>
+                    <div className="controlDock">
+            <div>
+              <label>Realignment</label>
+              <b>Riff realigns after {safeTargetBars} bars / {loopLength} steps</b>
+            </div>
+            <div>
+              <label>Density</label>
+              <b>{riffAnalysis.density}% · longest gap {riffAnalysis.longestGap}</b>
+            </div>
+            <div>
+              <label>Grouping sum</label>
+              <b>{riffAnalysis.groupingSum || "manual grid"}</b>
+            </div>
+            <div>
+              <label>Accents / Ghosts</label>
+              <b>{riffAnalysis.accentCount} / {riffAnalysis.ghostCount}</b>
+            </div>
+            <div>
+              <label>Downbeats hit</label>
+              <b>{riffAnalysis.downbeatHits}/{safeTargetBars}</b>
+            </div>
           </div>
           <div className="gridToolbar">
             <span>Click cells: empty → X → U → G → A</span>
