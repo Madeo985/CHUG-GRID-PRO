@@ -78,7 +78,39 @@ function makeGroupedPattern(groups: number[], loopLength: number, barSteps: numb
 
   return next;
 }
+function gcd(a: number, b: number): number {
+  return b === 0 ? Math.abs(a) : gcd(b, a % b);
+}
 
+function lcm(a: number, b: number): number {
+  if (!a || !b) return 0;
+  return Math.abs(a * b) / gcd(a, b);
+}
+
+function findPatternCycle(steps: Step[]): number {
+  const hits = steps
+    .map((value, index) => value ? index : -1)
+    .filter((index) => index >= 0);
+
+  if (hits.length < 2) return steps.length;
+
+  const gaps = hits.map((hit, index) => {
+    const nextHit = hits[(index + 1) % hits.length] ?? hit;
+    return (nextHit - hit + steps.length) % steps.length || steps.length;
+  });
+
+  const first = gaps.join(",");
+  for (let size = 1; size <= Math.ceil(gaps.length / 2); size++) {
+    if (gaps.length % size !== 0) continue;
+    const chunk = gaps.slice(0, size).join(",");
+    const repeated = Array.from({ length: gaps.length / size }, () => chunk).join(",");
+    if (repeated === first) {
+      return gaps.slice(0, size).reduce((sum, value) => sum + value, 0);
+    }
+  }
+
+  return steps.length;
+}
 function parseSequence(input: string): number[] {
   return input
     .split(/[\s,;.-]+/)
@@ -250,6 +282,9 @@ export default function Page() {
   const accentCount = loopSteps.filter((value) => value === "A").length;
   const ghostCount = loopSteps.filter((value) => value === "G").length;
   const downbeatHits = loopSteps.filter((value, index) => value && index % barSteps === 0).length;
+      const patternCycle = findPatternCycle(loopSteps);
+  const autoRealignSteps = lcm(patternCycle, barSteps);
+  const autoRealignBars = autoRealignSteps / barSteps;
 
   return {
     density: Math.round((activeCount / Math.max(loopLength, 1)) * 100),
@@ -257,7 +292,10 @@ export default function Page() {
     groupingSum,
     accentCount,
     ghostCount,
-    downbeatHits
+downbeatHits,
+patternCycle,
+autoRealignSteps,
+autoRealignBars
   };
 }, [activeCount, barSteps, loopLength, loopSteps, sequenceInput]);
 
@@ -595,7 +633,15 @@ function addGhostNotes() {
                     <div className="controlDock">
             <div>
               <label>Realignment</label>
-              <b>Riff realigns after {safeTargetBars} bars / {loopLength} steps</b>
+              <b>Manual loop: {safeTargetBars} bars / {loopLength} steps</b>
+            </div>
+                                  <div>
+              <label>Auto realign</label>
+              <b>{riffAnalysis.autoRealignBars} bars / {riffAnalysis.autoRealignSteps} steps</b>
+            </div>
+            <div>
+              <label>Pattern cycle</label>
+              <b>{riffAnalysis.patternCycle} steps</b>
             </div>
             <div>
               <label>Density</label>
