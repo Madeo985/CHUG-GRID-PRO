@@ -3,7 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Step = "" | "X" | "U" | "G" | "A";
-
+type RiffPreset = {
+  version: 1;
+  bpm: number;
+  targetBars: number;
+  metronome: boolean;
+  diceResult: number[];
+  diceRollCount: number;
+  sequenceInput: string;
+  steps: Step[];
+};
 const BAR_STEPS = 16;
 const groupValues = [2, 3, 4, 5, 6, 7, 9, 11];
 const stepCycle: Step[] = ["", "X", "U", "G", "A"];
@@ -65,6 +74,54 @@ function parseSequence(input: string): number[] {
     .split(/[\s,;.-]+/)
     .map((value) => Number.parseInt(value, 10))
     .filter((value) => Number.isFinite(value) && value > 0 && value <= 32);
+}
+function isStep(value: unknown): value is Step {
+  return value === "" || value === "X" || value === "U" || value === "G" || value === "A";
+}
+
+function clampNumber(value: unknown, fallback: number, min: number, max: number) {
+  const number = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.max(min, Math.min(max, Math.floor(number)));
+}
+
+function sanitizeNumberList(value: unknown, fallback: number[]) {
+  if (!Array.isArray(value)) return fallback;
+  const next = value.map(Number).filter((item) => Number.isFinite(item) && item > 0 && item <= 32);
+  return next.length ? next : fallback;
+}
+
+function sanitizeSteps(value: unknown): Step[] | null {
+  if (!Array.isArray(value)) return null;
+  return value.map((item) => isStep(item) ? item : "");
+}
+
+function encodePreset(preset: RiffPreset): string {
+  return btoa(JSON.stringify(preset)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function decodePreset(value: string): RiffPreset | null {
+  try {
+    const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(normalized.length + ((4 - normalized.length % 4) % 4), "=");
+    const parsed = JSON.parse(atob(padded)) as Partial<RiffPreset>;
+    const steps = sanitizeSteps(parsed.steps);
+
+    if (!steps) return null;
+
+    return {
+      version: 1,
+      bpm: clampNumber(parsed.bpm, 120, 40, 260),
+      targetBars: clampNumber(parsed.targetBars, 7, 1, 32),
+      metronome: Boolean(parsed.metronome),
+      diceResult: sanitizeNumberList(parsed.diceResult, [5, 3, 4, 6, 2, 5]),
+      diceRollCount: clampNumber(parsed.diceRollCount, 6, 3, 6),
+      sequenceInput: typeof parsed.sequenceInput === "string" ? parsed.sequenceInput : "5 3 4 6 2 5",
+      steps
+    };
+  } catch {
+    return null;
+  }
 }
 
 function playHit(ctx: AudioContext, type: Step, metronome: boolean, isQuarter: boolean, isOne: boolean) {
@@ -137,6 +194,7 @@ export default function Page() {
   const [diceResult, setDiceResult] = useState<number[]>([5, 3, 4, 6, 2, 5]);
   const [diceRollCount, setDiceRollCount] = useState(6);
   const [sequenceInput, setSequenceInput] = useState("5 3 4 6 2 5");
+  const [shareStatus, setShareStatus] = useState("");
 
   const safeTargetBars = Math.max(1, Math.min(32, Number.isFinite(targetBars) ? Math.floor(targetBars) : 1));
   const loopLength = safeTargetBars * BAR_STEPS;
@@ -162,6 +220,27 @@ export default function Page() {
   useEffect(() => { loopLengthRef.current = loopLength; }, [loopLength]);
   useEffect(() => { bpmRef.current = bpm; }, [bpm]);
   useEffect(() => { metronomeRef.current = metronome; }, [metronome]);
+  useEffect(() => {
+  const shared = new URLSearchParams(window.location.search).get("riff");
+  if (!shared) return;
+
+  const preset = decodePreset(shared);
+  if (!preset) {
+    setShareStatus("Shared riff link is invalid");
+    return;
+  }
+
+  stop();
+  setBpm(preset.bpm);
+  setTargetBars(preset.targetBars);
+  setMetronome(preset.metronome);
+  setDiceResult(preset.diceResult);
+  setDiceRollCount(preset.diceRollCount);
+  setSequenceInput(preset.sequenceInput);
+  setSteps(preset.steps);
+  resetPlayhead();
+  setShareStatus("Shared riff loaded");
+}, []);
 
   useEffect(() => {
     if (stepIndex >= loopLength) {
@@ -294,6 +373,31 @@ export default function Page() {
     resetPlayhead();
   }
 
+  async function copyRiffLink() {
+  const preset: RiffPreset = {
+    version: 1,
+    bpm,
+    targetBars: safeTargetBars,
+    metronome,
+    diceResult,
+    diceRollCount,
+    sequenceInput,
+    steps: loopSteps
+  };
+
+  const url = new URL(window.location.href);
+  url.searchParams.set("riff", encodePreset(preset));
+  url.hash = "app";
+
+  try {
+    await navigator.clipboard.writeText(url.toString());
+    window.history.replaceState(null, "", url.toString());
+    setShareStatus("Riff link copied");
+  } catch {
+    setShareStatus("Copy failed: copy the address bar");
+  }
+}
+
   return (
     <main className="site">
       <nav className="nav">
@@ -388,7 +492,13 @@ export default function Page() {
             </div>
             <button type="button" onClick={generateSequenceRiff}>GENERATE FROM SEQUENCE</button>
           </div>
-
+                    <div className="controlDock">
+            <div>
+              <label>Share</label>
+              <b>{shareStatus || "Copy a playable riff link"}</b>
+            </div>
+            <button type="button" onClick={copyRiffLink}>COPY RIFF LINK</button>
+          </div>
           <div className="gridToolbar">
             <span>Click cells: empty → X → U → G → A</span>
             <span>X chug · U upstroke · G ghost · A accent</span>
