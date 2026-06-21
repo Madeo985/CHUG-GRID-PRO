@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 type Step = "" | "X" | "U" | "G" | "A";
 
+const BAR_STEPS = 16;
 const stepCycle: Step[] = ["", "X", "U", "G", "A"];
 const labels = ["1", "e", "&", "a", "2", "e", "&", "a", "3", "e", "&", "a", "4", "e", "&", "a"];
 
@@ -27,6 +28,13 @@ function makeInitialPattern(): Step[] {
       ? i % 5 === 0 ? "U" : "X"
       : ""
   );
+}
+
+function fitStepsToLoop(steps: Step[], loopLength: number): Step[] {
+  const length = Math.max(1, Math.floor(loopLength));
+  if (steps.length === length) return steps;
+  if (steps.length === 0) return Array.from({ length }, () => "");
+  return Array.from({ length }, (_, index) => steps[index % steps.length]);
 }
 
 function playHit(ctx: AudioContext, type: Step, metronome: boolean, isQuarter: boolean, isOne: boolean) {
@@ -98,25 +106,37 @@ export default function Page() {
   const [metronome, setMetronome] = useState(true);
   const [diceResult, setDiceResult] = useState<number[]>([5, 3, 4, 6, 2, 5]);
 
+  const safeTargetBars = Math.max(1, Math.min(32, Number.isFinite(targetBars) ? Math.floor(targetBars) : 1));
+  const loopLength = safeTargetBars * BAR_STEPS;
+  const loopSteps = useMemo(() => fitStepsToLoop(steps, loopLength), [steps, loopLength]);
+
   const timeoutRef = useRef<number | null>(null);
   const audioRef = useRef<AudioContext | null>(null);
   const nextStepRef = useRef(0);
   const playingRef = useRef(false);
-  const stepsRef = useRef(steps);
+  const loopStepsRef = useRef(loopSteps);
+  const loopLengthRef = useRef(loopLength);
   const bpmRef = useRef(bpm);
   const metronomeRef = useRef(metronome);
 
-  const activeCount = useMemo(() => steps.filter(Boolean).length, [steps]);
-  const totalSteps = targetBars * 16;
-  const currentBar = Math.floor(stepIndex / 16) + 1;
-  const currentSixteenth = (stepIndex % 16) + 1;
-  const playAngle = (stepIndex / Math.max(totalSteps, 1)) * 360;
-  const pulseAngle = ((stepIndex % 16) / 16) * 360;
+  const activeCount = useMemo(() => loopSteps.filter(Boolean).length, [loopSteps]);
+  const currentBar = Math.floor(stepIndex / BAR_STEPS) + 1;
+  const currentSixteenth = (stepIndex % BAR_STEPS) + 1;
+  const playAngle = (stepIndex / Math.max(loopLength, 1)) * 360;
+  const pulseAngle = ((stepIndex % BAR_STEPS) / BAR_STEPS) * 360;
   const riffAngle = ((stepIndex % 23) / 23) * 360;
 
-  useEffect(() => { stepsRef.current = steps; }, [steps]);
+  useEffect(() => { loopStepsRef.current = loopSteps; }, [loopSteps]);
+  useEffect(() => { loopLengthRef.current = loopLength; }, [loopLength]);
   useEffect(() => { bpmRef.current = bpm; }, [bpm]);
   useEffect(() => { metronomeRef.current = metronome; }, [metronome]);
+
+  useEffect(() => {
+    if (stepIndex >= loopLength) {
+      nextStepRef.current = 0;
+      setStepIndex(0);
+    }
+  }, [stepIndex, loopLength]);
 
   useEffect(() => {
     return () => {
@@ -135,17 +155,17 @@ export default function Page() {
     if (!playingRef.current) return;
 
     const ctx = ensureAudio();
-    const index = nextStepRef.current % stepsRef.current.length;
-    const value = stepsRef.current[index];
+    const index = nextStepRef.current % loopLengthRef.current;
+    const value = loopStepsRef.current[index] ?? "";
     const isQuarter = index % 4 === 0;
-    const isOne = index % 16 === 0;
+    const isOne = index % BAR_STEPS === 0;
 
     playHit(ctx, value, metronomeRef.current, isQuarter, isOne);
     setStepIndex(index);
 
-    nextStepRef.current = (index + 1) % stepsRef.current.length;
+    nextStepRef.current = (index + 1) % loopLengthRef.current;
 
-    const intervalMs = (60_000 / bpmRef.current) / 4;
+    const intervalMs = (60_000 / Math.max(40, bpmRef.current)) / 4;
     timeoutRef.current = window.setTimeout(tick, intervalMs);
   }
 
@@ -174,19 +194,20 @@ export default function Page() {
 
   function stepOnce() {
     const ctx = ensureAudio();
-    const index = nextStepRef.current % steps.length;
-    playHit(ctx, steps[index], metronome, index % 4 === 0, index % 16 === 0);
+    const index = nextStepRef.current % loopLengthRef.current;
+    const value = loopStepsRef.current[index] ?? "";
+    playHit(ctx, value, metronome, index % 4 === 0, index % BAR_STEPS === 0);
     setStepIndex(index);
-    nextStepRef.current = (index + 1) % steps.length;
+    nextStepRef.current = (index + 1) % loopLengthRef.current;
   }
 
   function toggleStep(index: number) {
-    setSteps((current) => current.map((value, i) => (i === index ? nextStep(value) : value)));
+    setSteps((current) => fitStepsToLoop(current, loopLength).map((value, i) => (i === index ? nextStep(value) : value)));
   }
 
   function clearGrid() {
     stop();
-    setSteps(Array.from({ length: 64 }, () => ""));
+    setSteps(Array.from({ length: loopLength }, () => ""));
     nextStepRef.current = 0;
     setStepIndex(0);
   }
@@ -210,8 +231,7 @@ export default function Page() {
   }
 
   function generateTargetRiff() {
-    const bars = Math.max(1, Math.min(32, targetBars));
-    const total = bars * 16;
+    const total = loopLength;
     const cycleCandidates = [5, 7, 9, 11, 13, 17, 19, 23, 29, 31].filter((n) => n < total && total % n !== 0);
     const cycle = cycleCandidates[Math.floor(Math.random() * cycleCandidates.length)] ?? 23;
 
@@ -261,7 +281,7 @@ export default function Page() {
         <div className="heroInstrument" id="app">
           <div className="topStrip">
             <span>{playing ? "PLAYING" : "READY"}</span>
-            <span>{activeCount} hits · step {stepIndex + 1}/64 · bar {currentBar}</span>
+            <span>{activeCount} hits · step {stepIndex + 1}/{loopLength} · bar {currentBar}/{safeTargetBars}</span>
           </div>
 
           <div className="orbitalStage">
@@ -271,11 +291,17 @@ export default function Page() {
             <div className="hand handPulse" style={{ transform: `rotate(${pulseAngle}deg)` }} />
             <div className="hand handRiff" style={{ transform: `rotate(${riffAngle}deg)` }} />
             <div className="hand handBar" style={{ transform: `rotate(${playAngle}deg)` }} />
-            {Array.from({ length: 12 }, (_, i) => <i key={i} className={`orbDot dot${i}`} />)}
+            {loopSteps.map((value, i) => value && (
+              <i
+                key={i}
+                className={`orbDot type${value} ${i === 0 ? "cycleStart" : ""} ${i % BAR_STEPS === 0 ? "barStart" : ""} ${i === stepIndex ? "current" : ""}`}
+                style={{ transform: `rotate(${(i / loopLength) * 360}deg) translateY(var(--orbit-dot-radius))` }}
+              />
+            ))}
             <div className="centerReadout">
               <span>BAR</span>
-              <strong>{currentBar} / {targetBars}</strong>
-              <em>step {currentSixteenth}/16 · riff cycle 23/16</em>
+              <strong>{currentBar} / {safeTargetBars}</strong>
+              <em>step {currentSixteenth}/16 · loop {loopLength} steps</em>
             </div>
           </div>
 
@@ -310,7 +336,7 @@ export default function Page() {
           </div>
 
           <div className="beatLabels">
-            {Array.from({ length: 4 }, (_, bar) => (
+            {Array.from({ length: safeTargetBars }, (_, bar) => (
               <div key={bar} className="beatLabel">
                 {labels.map((label, i) => <span key={`${bar}-${i}`}>{label}</span>)}
               </div>
@@ -318,7 +344,7 @@ export default function Page() {
           </div>
 
           <div className="miniGrid interactiveGrid">
-            {steps.map((value, i) => (
+            {loopSteps.map((value, i) => (
               <button
                 type="button"
                 key={i}
@@ -360,7 +386,7 @@ export default function Page() {
         <div className="statPanel">
           <div><span>Riff Cycle</span><b>23/16</b></div>
           <div><span>Bar Cycle</span><b>16/16</b></div>
-          <div><span>Current Bar</span><b>{currentBar}/{targetBars}</b></div>
+          <div><span>Current Bar</span><b>{currentBar}/{safeTargetBars}</b></div>
         </div>
       </section>
 
