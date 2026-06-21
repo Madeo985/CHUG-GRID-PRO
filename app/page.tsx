@@ -372,6 +372,35 @@ export default function Page() {
     setSteps(next);
     resetPlayhead();
   }
+  function mutateSteps(next: Step[], message: string) {
+  stop();
+  setSteps(next);
+  resetPlayhead();
+  setShareStatus(message);
+}
+
+function shiftForward() {
+  const next = Array.from({ length: loopLength }, () => "") as Step[];
+
+  loopSteps.forEach((value, index) => {
+    next[(index + 1) % loopLength] = value;
+  });
+
+  mutateSteps(next, "Shifted +1");
+}
+
+function addGhostNotes() {
+  const next = [...loopSteps];
+
+  loopSteps.forEach((value, index) => {
+    if (!value) return;
+
+    const ghostIndex = (index - 1 + loopLength) % loopLength;
+    if (!next[ghostIndex]) next[ghostIndex] = "G";
+  });
+
+  mutateSteps(next, "Ghost notes added");
+}
 
   async function copyRiffLink() {
   const preset: RiffPreset = {
@@ -498,6 +527,14 @@ export default function Page() {
               <b>{shareStatus || "Copy a playable riff link"}</b>
             </div>
             <button type="button" onClick={copyRiffLink}>COPY RIFF LINK</button>
+          </div>
+                    <div className="controlDock">
+            <div>
+              <label>Mutate</label>
+              <b>Shift or humanize the current riff</b>
+            </div>
+            <button type="button" onClick={shiftForward}>SHIFT +1</button>
+            <button type="button" onClick={addGhostNotes}>ADD GHOSTS</button>
           </div>
           <div className="gridToolbar">
             <span>Click cells: empty → X → U → G → A</span>
