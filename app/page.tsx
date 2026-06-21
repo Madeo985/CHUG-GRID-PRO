@@ -3,17 +3,27 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Step = "" | "X" | "U" | "G" | "A";
+type MeterId = "3/4" | "4/4" | "5/4" | "6/8" | "7/8" | "9/8";
 type RiffPreset = {
+  
   version: 1;
   bpm: number;
   targetBars: number;
+    meter: MeterId;
   metronome: boolean;
   diceResult: number[];
   diceRollCount: number;
   sequenceInput: string;
   steps: Step[];
 };
-const BAR_STEPS = 16;
+const meters: Record<MeterId, { label: string; barSteps: number; beatLabels: string[] }> = {
+  "3/4": { label: "3/4", barSteps: 12, beatLabels: ["1", "e", "&", "a", "2", "e", "&", "a", "3", "e", "&", "a"] },
+  "4/4": { label: "4/4", barSteps: 16, beatLabels: ["1", "e", "&", "a", "2", "e", "&", "a", "3", "e", "&", "a", "4", "e", "&", "a"] },
+  "5/4": { label: "5/4", barSteps: 20, beatLabels: ["1", "e", "&", "a", "2", "e", "&", "a", "3", "e", "&", "a", "4", "e", "&", "a", "5", "e", "&", "a"] },
+  "6/8": { label: "6/8", barSteps: 12, beatLabels: ["1", "&", "a", "2", "&", "a", "3", "&", "a", "4", "&", "a"] },
+  "7/8": { label: "7/8", barSteps: 14, beatLabels: ["1", "&", "2", "&", "3", "&", "4", "&", "5", "&", "6", "&", "7", "&"] },
+  "9/8": { label: "9/8", barSteps: 18, beatLabels: ["1", "&", "2", "&", "3", "&", "4", "&", "5", "&", "6", "&", "7", "&", "8", "&", "9", "&"] }
+};
 const groupValues = [2, 3, 4, 5, 6, 7, 9, 11];
 const stepCycle: Step[] = ["", "X", "U", "G", "A"];
 const labels = ["1", "e", "&", "a", "2", "e", "&", "a", "3", "e", "&", "a", "4", "e", "&", "a"];
@@ -190,14 +200,18 @@ export default function Page() {
   const [playing, setPlaying] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [targetBars, setTargetBars] = useState(7);
+    const [meter, setMeter] = useState<MeterId>("4/4");
   const [metronome, setMetronome] = useState(true);
   const [diceResult, setDiceResult] = useState<number[]>([5, 3, 4, 6, 2, 5]);
   const [diceRollCount, setDiceRollCount] = useState(6);
   const [sequenceInput, setSequenceInput] = useState("5 3 4 6 2 5");
   const [shareStatus, setShareStatus] = useState("");
 
+   const meterInfo = meters[meter];
+  const barSteps = meterInfo.barSteps;
+  const labels = meterInfo.beatLabels;
   const safeTargetBars = Math.max(1, Math.min(32, Number.isFinite(targetBars) ? Math.floor(targetBars) : 1));
-  const loopLength = safeTargetBars * BAR_STEPS;
+  const loopLength = safeTargetBars * barSteps;
   const loopSteps = useMemo(() => fitStepsToLoop(steps, loopLength), [steps, loopLength]);
 
   const timeoutRef = useRef<number | null>(null);
