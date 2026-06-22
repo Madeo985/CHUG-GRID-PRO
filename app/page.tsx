@@ -247,6 +247,7 @@ export default function Page() {
    const meterInfo = meters[meter];
   const barSteps = meterInfo.barSteps;
   const labels = meterInfo.beatLabels;
+  const beatCount = Number(meter.split("/")[0]);
   const safeTargetBars = Math.max(1, Math.min(32, Number.isFinite(targetBars) ? Math.floor(targetBars) : 1));
   const loopLength = safeTargetBars * barSteps;
   const loopSteps = useMemo(() => fitStepsToLoop(steps, loopLength), [steps, loopLength]);
@@ -689,6 +690,24 @@ function addGhostNotes() {
             <div className="orbit orbitOuter" />
             <div className="orbit orbitMiddle" />
             <div className="orbit orbitInner" />
+            {Array.from({ length: beatCount }, (_, beat) => {
+  const angle = (beat / beatCount) * 360;
+  const compoundAccent =
+    (meter === "6/8" || meter === "9/8") && beat % 3 === 0;
+
+  return (
+    <span
+      key={`orbit-beat-${beat}`}
+      className={`orbitBeatLabel ${beat === 0 ? "downbeat" : ""} ${compoundAccent ? "compoundAccent" : ""}`}
+      style={{
+        transform: `rotate(${angle}deg) translateY(var(--orbit-label-radius)) rotate(${-angle}deg)`
+      }}
+      aria-hidden="true"
+    >
+      {beat + 1}
+    </span>
+  );
+})}
             <div className="hand handPulse" style={{ transform: `rotate(${pulseAngle}deg)` }} />
             <div className="hand handRiff" style={{ transform: `rotate(${riffAngle}deg)` }} />
             <div className="hand handBar" style={{ transform: `rotate(${playAngle}deg)` }} />
