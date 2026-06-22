@@ -539,6 +539,64 @@ autoRealignBars
     resetPlayhead();
     setShareStatus(`Meshuggah mode: ${safeTargetBars} bars`);
   }
+    function generateVildhjartaRiff() {
+    const total = loopLength;
+    const targetCycle =
+      Array.from({ length: total - 1 }, (_, index) => index + 2)
+        .find((cycle) => lcm(cycle, barSteps) === total) ?? total;
+
+    const preferredGroups = [7, 3, 5, 2, 11, 4, 9, 6];
+    const grouping: number[] = [];
+    let remaining = targetCycle;
+    let preferenceIndex = 0;
+
+    while (remaining > 0) {
+      if (remaining <= 4) {
+        grouping.push(remaining);
+        break;
+      }
+
+      const candidates = preferredGroups.filter(
+        (value) => value <= remaining && remaining - value !== 1
+      );
+      const group =
+        candidates[preferenceIndex % candidates.length] ?? remaining;
+
+      grouping.push(group);
+      remaining -= group;
+      preferenceIndex++;
+    }
+
+    const next = Array.from({ length: total }, () => "") as Step[];
+    let pos = 0;
+    let groupIndex = 0;
+
+    while (pos < total) {
+      const localIndex = groupIndex % grouping.length;
+
+      next[pos] =
+        localIndex === 0 || localIndex % 5 === 3
+          ? "A"
+          : localIndex % 3 === 2
+            ? "U"
+            : "X";
+
+      if (localIndex % 2 === 1) {
+        const ghostIndex = (pos - 1 + total) % total;
+        if (!next[ghostIndex]) next[ghostIndex] = "G";
+      }
+
+      pos += grouping[localIndex];
+      groupIndex++;
+    }
+
+    stop();
+    setDiceResult(grouping);
+    setSequenceInput(grouping.join(" "));
+    setSteps(next);
+    resetPlayhead();
+    setShareStatus(`Vildhjarta mode: ${safeTargetBars} bars`);
+  }
   function mutateSteps(next: Step[], message: string) {
   stop();
   setSteps(next);
@@ -683,6 +741,7 @@ function addGhostNotes() {
             <button type="button" onClick={generateDiceRiff}>ROLL RIFF</button>
             <button type="button" onClick={generateTargetRiff}>TARGET RIFF</button>
             <button type="button" onClick={generateMeshuggahRiff}>MESHUGGAH</button>
+            <button type="button" onClick={generateVildhjartaRiff}>VILDHJARTA</button>
             <button type="button" onClick={clearGrid}>CLEAR</button>
           </div>
 
