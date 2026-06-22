@@ -435,18 +435,48 @@ autoRealignBars
     applyGroups(groups);
   }
 
-  function generateTargetRiff() {
+    function generateTargetRiff() {
     const total = loopLength;
-    const cycleCandidates = [5, 7, 9, 11, 13, 17, 19, 23, 29, 31].filter((n) => n < total && total % n !== 0);
-    const cycle = cycleCandidates[Math.floor(Math.random() * cycleCandidates.length)] ?? 23;
+    const targetCycle =
+      Array.from({ length: total - 1 }, (_, index) => index + 2)
+        .find((cycle) => lcm(cycle, barSteps) === total) ?? total;
 
-    const grouping = [3, 5, 2, 4, 6, 7];
-    const next = Array.from({ length: loopLength }, () => "") as Step[];
+    const preferredGroups = [2, 3, 5, 7, 4, 6, 9, 11];
+    const grouping: number[] = [];
+    let remaining = targetCycle;
+    let preferenceIndex = 0;
+
+    while (remaining > 0) {
+      if (remaining <= 4) {
+        grouping.push(remaining);
+        break;
+      }
+
+      const candidates = preferredGroups.filter(
+        (value) => value <= remaining && remaining - value !== 1
+      );
+      const group =
+        candidates[preferenceIndex % candidates.length] ?? remaining;
+
+      grouping.push(group);
+      remaining -= group;
+      preferenceIndex++;
+    }
+
+    const next = Array.from({ length: total }, () => "") as Step[];
     let pos = 0;
     let groupIndex = 0;
 
-    while (pos < next.length) {
-      next[pos] = pos % cycle === 0 ? "A" : groupIndex % 3 === 0 ? "U" : "X";
+    while (pos < total) {
+      next[pos] =
+        pos % targetCycle === 0
+          ? "A"
+          : groupIndex % 5 === 3
+            ? "G"
+            : groupIndex % 3 === 1
+              ? "U"
+              : "X";
+
       pos += grouping[groupIndex % grouping.length];
       groupIndex++;
     }
@@ -456,6 +486,7 @@ autoRealignBars
     setSequenceInput(grouping.join(" "));
     setSteps(next);
     resetPlayhead();
+    setShareStatus(`Target riff: ${safeTargetBars} bars`);
   }
   function mutateSteps(next: Step[], message: string) {
   stop();
