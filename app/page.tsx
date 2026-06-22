@@ -261,6 +261,7 @@ export default function Page() {
   const bpmRef = useRef(bpm);
   const metronomeRef = useRef(metronome);
     const barStepsRef = useRef(barSteps);
+  const generatorVariationRef = useRef(0);
 
   const activeCount = useMemo(() => loopSteps.filter(Boolean).length, [loopSteps]);
   const currentBar = Math.floor(stepIndex / barSteps) + 1;
@@ -445,7 +446,7 @@ autoRealignBars
     const preferredGroups = [2, 3, 5, 7, 4, 6, 9, 11];
     const grouping: number[] = [];
     let remaining = targetCycle;
-    let preferenceIndex = 0;
+    let preferenceIndex = generatorVariationRef.current++;
 
     while (remaining > 0) {
       if (remaining <= 4) {
@@ -498,7 +499,7 @@ autoRealignBars
     const preferredGroups = [5, 3, 4, 2, 7, 6, 9, 11];
     const grouping: number[] = [];
     let remaining = targetCycle;
-    let preferenceIndex = 0;
+    let preferenceIndex = generatorVariationRef.current++;
 
     while (remaining > 0) {
       if (remaining <= 4) {
@@ -549,7 +550,7 @@ autoRealignBars
     const preferredGroups = [7, 3, 5, 2, 11, 4, 9, 6];
     const grouping: number[] = [];
     let remaining = targetCycle;
-    let preferenceIndex = 0;
+    let preferenceIndex = generatorVariationRef.current++;
 
     while (remaining > 0) {
       if (remaining <= 4) {
@@ -607,7 +608,7 @@ autoRealignBars
     const preferredGroups = [3, 2, 5, 7, 4, 11, 6, 9];
     const grouping: number[] = [];
     let remaining = targetCycle;
-    let preferenceIndex = 0;
+    let preferenceIndex = generatorVariationRef.current++;
 
     while (remaining > 0) {
       if (remaining <= 4) {
