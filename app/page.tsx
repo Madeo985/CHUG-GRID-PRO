@@ -180,7 +180,7 @@ function playHit(ctx: AudioContext, type: Step, metronome: boolean, isQuarter: b
     click.type = "square";
     click.frequency.setValueAtTime(isOne ? 1200 : 800, now);
     clickGain.gain.setValueAtTime(0.0001, now);
-    clickGain.gain.exponentialRampToValueAtTime(isOne ? 0.12 : 0.07, now + 0.004);
+    clickGain.gain.exponentialRampToValueAtTime(isOne ? 0.045 : 0.025, now + 0.004);
     clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
     click.connect(clickGain);
     clickGain.connect(ctx.destination);
