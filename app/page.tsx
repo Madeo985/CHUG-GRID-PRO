@@ -598,6 +598,69 @@ autoRealignBars
     resetPlayhead();
     setShareStatus(`Vildhjarta mode: ${safeTargetBars} bars`);
   }
+    function generateCarBombRiff() {
+    const total = loopLength;
+    const targetCycle =
+      Array.from({ length: total - 1 }, (_, index) => index + 2)
+        .find((cycle) => lcm(cycle, barSteps) === total) ?? total;
+
+    const preferredGroups = [3, 2, 5, 7, 4, 11, 6, 9];
+    const grouping: number[] = [];
+    let remaining = targetCycle;
+    let preferenceIndex = 0;
+
+    while (remaining > 0) {
+      if (remaining <= 4) {
+        grouping.push(remaining);
+        break;
+      }
+
+      const candidates = preferredGroups.filter(
+        (value) => value <= remaining && remaining - value !== 1
+      );
+      const group =
+        candidates[preferenceIndex % candidates.length] ?? remaining;
+
+      grouping.push(group);
+      remaining -= group;
+      preferenceIndex++;
+    }
+
+    const next = Array.from({ length: total }, () => "") as Step[];
+    let pos = 0;
+    let groupIndex = 0;
+
+    while (pos < total) {
+      const localIndex = groupIndex % grouping.length;
+      const shouldRest = localIndex % 5 === 4;
+
+      if (!shouldRest) {
+        next[pos] =
+          localIndex === 0 || localIndex % 4 === 3
+            ? "A"
+            : localIndex % 3 === 1
+              ? "U"
+              : "X";
+
+        if (localIndex % 2 === 0) {
+          const stutterIndex = (pos + 1) % total;
+          if (!next[stutterIndex]) {
+            next[stutterIndex] = localIndex % 4 === 0 ? "A" : "X";
+          }
+        }
+      }
+
+      pos += grouping[localIndex];
+      groupIndex++;
+    }
+
+    stop();
+    setDiceResult(grouping);
+    setSequenceInput(grouping.join(" "));
+    setSteps(next);
+    resetPlayhead();
+    setShareStatus(`Car Bomb mode: ${safeTargetBars} bars`);
+  }
   function mutateSteps(next: Step[], message: string) {
   stop();
   setSteps(next);
@@ -761,6 +824,7 @@ function addGhostNotes() {
             <button type="button" onClick={generateTargetRiff}>TARGET RIFF</button>
             <button type="button" onClick={generateMeshuggahRiff}>MESHUGGAH</button>
             <button type="button" onClick={generateVildhjartaRiff}>VILDHJARTA</button>
+            <button type="button" onClick={generateCarBombRiff}>CAR BOMB</button>
             <button type="button" onClick={clearGrid}>CLEAR</button>
           </div>
 
