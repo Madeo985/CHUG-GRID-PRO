@@ -372,13 +372,19 @@ autoRealignBars
     timeoutRef.current = window.setTimeout(tick, intervalMs);
   }
 
-  function play() {
-    if (playingRef.current) return;
-    ensureAudio();
-    playingRef.current = true;
-    setPlaying(true);
-    tick();
+ async function play() {
+  const ctx = ensureAudio();
+
+  if (ctx.state !== "running") {
+    await ctx.resume();
   }
+
+  if (playingRef.current) return;
+
+  playingRef.current = true;
+  setPlaying(true);
+  tick();
+}
 
   function stop() {
     playingRef.current = false;
@@ -394,8 +400,12 @@ autoRealignBars
     resetPlayhead();
   }
 
-  function stepOnce() {
-    const ctx = ensureAudio();
+  async function stepOnce() {
+  const ctx = ensureAudio();
+
+  if (ctx.state !== "running") {
+    await ctx.resume();
+  }
     const index = nextStepRef.current % loopLengthRef.current;
     const value = loopStepsRef.current[index] ?? "";
     playHit(ctx, value, metronome, index % 4 === 0, index % barSteps === 0);
