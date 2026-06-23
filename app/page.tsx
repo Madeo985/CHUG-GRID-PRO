@@ -381,6 +381,8 @@ export default function Page() {
   const [presetName, setPresetName] = useState("My riff");
 const [savedPresets, setSavedPresets] = useState<SavedPreset[]>([]);
 const [selectedPresetId, setSelectedPresetId] = useState("");
+  const [randomDensity, setRandomDensity] = useState(55);
+const [randomComplexity, setRandomComplexity] = useState(60);
 
    const meterInfo = meters[meter];
   const barSteps = meterInfo.barSteps;
@@ -581,34 +583,62 @@ useEffect(() => {
     resetPlayhead();
   }
 function generateRandomRiff() {
-  const groupCount = 4 + Math.floor(Math.random() * 5);
+  const density = randomDensity / 100;
+  const complexity = randomComplexity / 100;
+
+  const availableGroups =
+    complexity < 0.34
+      ? [2, 4, 6]
+      : complexity < 0.67
+        ? [2, 3, 4, 5, 6, 7]
+        : groupValues;
+
+  const groupCount = 3 + Math.round(complexity * 6);
   const groups = Array.from(
     { length: groupCount },
-    () => groupValues[Math.floor(Math.random() * groupValues.length)]
+    () =>
+      availableGroups[
+        Math.floor(Math.random() * availableGroups.length)
+      ]
   );
 
-  const next = makeGroupedPattern(
+  const groupedPattern = makeGroupedPattern(
     groups,
     loopLength,
     barSteps
-  ).map((value, index): Step => {
-    if (!value) return "";
-    if (index % barSteps === 0) return "A";
+  );
 
-    const chance = Math.random();
+  const next = groupedPattern.map(
+    (value, index): Step => {
+      const isDownbeat = index % barSteps === 0;
+      const keepChance = 0.25 + density * 0.75;
+      const extraChance =
+        density * (0.08 + complexity * 0.18);
 
-    if (chance < 0.55) return "X";
-    if (chance < 0.72) return "U";
-    if (chance < 0.88) return "G";
-    return "A";
-  });
+      const active = value
+        ? isDownbeat || Math.random() < keepChance
+        : Math.random() < extraChance;
+
+      if (!active) return "";
+      if (isDownbeat) return "A";
+
+      const chance = Math.random();
+
+      if (chance < 0.58) return "X";
+      if (chance < 0.74) return "U";
+      if (chance < 0.9) return "G";
+      return "A";
+    }
+  );
 
   stop();
   setDiceResult(groups);
   setSequenceInput(groups.join(" "));
   setSteps(next);
   resetPlayhead();
-  setShareStatus("Random riff generated");
+  setShareStatus(
+    `Random riff: density ${randomDensity}% · complexity ${randomComplexity}%`
+  );
 }
   function generateDiceRiff() {
     const rollCount = Math.max(3, Math.min(6, diceRollCount));
@@ -1088,6 +1118,29 @@ function exportMidi() {
               <label>Dice rolls</label>
               <input type="number" min="3" max="6" value={diceRollCount} onChange={(e) => setDiceRollCount(Number(e.target.value))} />
             </div>
+            <div className="bpmControl">
+  <label>Density {randomDensity}%</label>
+  <input
+    type="range"
+    min="10"
+    max="100"
+    step="5"
+    value={randomDensity}
+    onChange={(e) => setRandomDensity(Number(e.target.value))}
+  />
+</div>
+
+<div className="bpmControl">
+  <label>Complexity {randomComplexity}%</label>
+  <input
+    type="range"
+    min="0"
+    max="100"
+    step="10"
+    value={randomComplexity}
+    onChange={(e) => setRandomComplexity(Number(e.target.value))}
+  />
+</div>
             <button type="button" onClick={generateRandomRiff}>
   RANDOM RIFF
 </button>
