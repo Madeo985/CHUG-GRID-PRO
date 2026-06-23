@@ -16,6 +16,13 @@ type RiffPreset = {
   sequenceInput: string;
   steps: Step[];
 };
+type SavedPreset = RiffPreset & {
+  id: string;
+  name: string;
+  savedAt: string;
+};
+
+const PRESET_STORAGE_KEY = "chug-grid-presets-v1";
 const meters: Record<MeterId, { label: string; barSteps: number; beatLabels: string[] }> = {
   "3/4": { label: "3/4", barSteps: 12, beatLabels: ["1", "e", "&", "a", "2", "e", "&", "a", "3", "e", "&", "a"] },
   "4/4": { label: "4/4", barSteps: 16, beatLabels: ["1", "e", "&", "a", "2", "e", "&", "a", "3", "e", "&", "a", "4", "e", "&", "a"] },
@@ -371,6 +378,9 @@ export default function Page() {
   const [diceRollCount, setDiceRollCount] = useState(6);
   const [sequenceInput, setSequenceInput] = useState("5 3 4 6 2 5");
   const [shareStatus, setShareStatus] = useState("");
+  const [presetName, setPresetName] = useState("My riff");
+const [savedPresets, setSavedPresets] = useState<SavedPreset[]>([]);
+const [selectedPresetId, setSelectedPresetId] = useState("");
 
    const meterInfo = meters[meter];
   const barSteps = meterInfo.barSteps;
@@ -456,7 +466,19 @@ autoRealignBars
   resetPlayhead();
   setShareStatus("Shared riff loaded");
 }, []);
+useEffect(() => {
+  try {
+    const stored = window.localStorage.getItem(PRESET_STORAGE_KEY);
+    if (!stored) return;
 
+    const parsed = JSON.parse(stored);
+    if (Array.isArray(parsed)) {
+      setSavedPresets(parsed);
+    }
+  } catch {
+    window.localStorage.removeItem(PRESET_STORAGE_KEY);
+  }
+}, []);
   useEffect(() => {
     if (stepIndex >= loopLength) {
       nextStepRef.current = 0;
@@ -829,6 +851,70 @@ function addGhostNotes() {
 
   mutateSteps(next, "Ghost notes added");
 }
+  function persistPresets(next: SavedPreset[]) {
+  setSavedPresets(next);
+  window.localStorage.setItem(
+    PRESET_STORAGE_KEY,
+    JSON.stringify(next)
+  );
+}
+  function savePreset() {
+  const name =
+    presetName.trim() || `Riff ${savedPresets.length + 1}`;
+
+  const preset: SavedPreset = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    name,
+    savedAt: new Date().toISOString(),
+    version: 1,
+    bpm,
+    targetBars: safeTargetBars,
+    meter,
+    metronome,
+    diceResult,
+    diceRollCount,
+    sequenceInput,
+    steps: loopSteps
+  };
+
+  const next = [preset, ...savedPresets];
+
+  persistPresets(next);
+  setSelectedPresetId(preset.id);
+  setPresetName(name);
+  setShareStatus(`Preset saved: ${name}`);
+}
+  function loadPreset() {
+  const preset = savedPresets.find(
+    (item) => item.id === selectedPresetId
+  );
+
+  if (!preset) return;
+
+  stop();
+  setBpm(preset.bpm);
+  setTargetBars(preset.targetBars);
+  setMeter(preset.meter);
+  setMetronome(preset.metronome);
+  setDiceResult(preset.diceResult);
+  setDiceRollCount(preset.diceRollCount);
+  setSequenceInput(preset.sequenceInput);
+  setSteps(preset.steps);
+  setPresetName(preset.name);
+  resetPlayhead();
+  setShareStatus(`Preset loaded: ${preset.name}`);
+}
+  function deletePreset() {
+  if (!selectedPresetId) return;
+
+  const next = savedPresets.filter(
+    (item) => item.id !== selectedPresetId
+  );
+
+  persistPresets(next);
+  setSelectedPresetId("");
+  setShareStatus("Preset deleted");
+}
 function exportMidi() {
   const blob = createMidiBlob(loopSteps, bpm, meter);
   const url = URL.createObjectURL(blob);
@@ -993,6 +1079,52 @@ function exportMidi() {
             </div>
             <button type="button" onClick={generateSequenceRiff}>GENERATE FROM SEQUENCE</button>
           </div>
+          <div className="controlDock">
+  <div className="bpmControl">
+    <label>Preset name</label>
+    <input
+      type="text"
+      value={presetName}
+      onChange={(e) => setPresetName(e.target.value)}
+      placeholder="My riff"
+    />
+  </div>
+
+  <button type="button" onClick={savePreset}>
+    SAVE PRESET
+  </button>
+
+  <div className="bpmControl">
+    <label>Saved presets</label>
+    <select
+      value={selectedPresetId}
+      onChange={(e) => setSelectedPresetId(e.target.value)}
+    >
+      <option value="">Select preset</option>
+      {savedPresets.map((preset) => (
+        <option key={preset.id} value={preset.id}>
+          {preset.name}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <button
+    type="button"
+    onClick={loadPreset}
+    disabled={!selectedPresetId}
+  >
+    LOAD
+  </button>
+
+  <button
+    type="button"
+    onClick={deletePreset}
+    disabled={!selectedPresetId}
+  >
+    DELETE
+  </button>
+</div>
                     <div className="controlDock">
             <div>
               <label>Share</label>
