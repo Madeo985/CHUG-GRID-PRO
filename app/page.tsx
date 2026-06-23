@@ -580,7 +580,36 @@ useEffect(() => {
     setSteps(makeGroupedPattern(groups, loopLength, barSteps));
     resetPlayhead();
   }
+function generateRandomRiff() {
+  const groupCount = 4 + Math.floor(Math.random() * 5);
+  const groups = Array.from(
+    { length: groupCount },
+    () => groupValues[Math.floor(Math.random() * groupValues.length)]
+  );
 
+  const next = makeGroupedPattern(
+    groups,
+    loopLength,
+    barSteps
+  ).map((value, index): Step => {
+    if (!value) return "";
+    if (index % barSteps === 0) return "A";
+
+    const chance = Math.random();
+
+    if (chance < 0.55) return "X";
+    if (chance < 0.72) return "U";
+    if (chance < 0.88) return "G";
+    return "A";
+  });
+
+  stop();
+  setDiceResult(groups);
+  setSequenceInput(groups.join(" "));
+  setSteps(next);
+  resetPlayhead();
+  setShareStatus("Random riff generated");
+}
   function generateDiceRiff() {
     const rollCount = Math.max(3, Math.min(6, diceRollCount));
     const dice = Array.from(
@@ -1059,6 +1088,9 @@ function exportMidi() {
               <label>Dice rolls</label>
               <input type="number" min="3" max="6" value={diceRollCount} onChange={(e) => setDiceRollCount(Number(e.target.value))} />
             </div>
+            <button type="button" onClick={generateRandomRiff}>
+  RANDOM RIFF
+</button>
             <button type="button" onClick={generateDiceRiff}>ROLL RIFF</button>
             <button type="button" onClick={generateTargetRiff}>TARGET RIFF</button>
             <button type="button" onClick={generateMeshuggahRiff}>MESHUGGAH</button>
