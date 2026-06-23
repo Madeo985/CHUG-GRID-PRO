@@ -170,7 +170,135 @@ function decodePreset(value: string): RiffPreset | null {
     return null;
   }
 }
+type MidiEvent = {
+  tick: number;
+  order: number;
+  data: number[];
+};
 
+function midiUint32(value: number): number[] {
+  return [
+    (value >>> 24) & 255,
+    (value >>> 16) & 255,
+    (value >>> 8) & 255,
+    value & 255
+  ];
+}
+
+function midiVariableLength(value: number): number[] {
+  let buffer = value & 0x7f;
+  const bytes: number[] = [];
+
+  while ((value >>= 7)) {
+    buffer <<= 8;
+    buffer |= (value & 0x7f) | 0x80;
+  }
+
+  while (true) {
+    bytes.push(buffer & 255);
+    if (buffer & 0x80) buffer >>= 8;
+    else break;
+  }
+
+  return bytes;
+}
+
+function createMidiBlob(steps: Step[], bpm: number, meter: MeterId): Blob {
+  const ppq = 480;
+  const ticksPerStep = ppq / 4;
+  const noteLength = Math.round(ticksPerStep * 0.8);
+  const [numerator, denominator] = meter.split("/").map(Number);
+  const tempo = Math.round(60_000_000 / Math.max(40, Math.min(260, bpm)));
+  const denominatorPower = Math.round(Math.log2(denominator));
+  const clocksPerClick =
+    denominator === 8 && numerator % 3 === 0
+      ? 36
+      : denominator === 8
+        ? 12
+        : 24;
+
+  const velocities = {
+    X: 100,
+    U: 84,
+    G: 42,
+    A: 127
+  };
+
+  const events: MidiEvent[] = [
+    {
+      tick: 0,
+      order: 0,
+      data: [
+        0xff, 0x51, 0x03,
+        (tempo >>> 16) & 255,
+        (tempo >>> 8) & 255,
+        tempo & 255
+      ]
+    },
+    {
+      tick: 0,
+      order: 1,
+      data: [
+        0xff, 0x58, 0x04,
+        numerator,
+        denominatorPower,
+        clocksPerClick,
+        8
+      ]
+    }
+  ];
+
+  steps.forEach((step, index) => {
+    if (!step) return;
+
+    const tick = index * ticksPerStep;
+    events.push(
+      {
+        tick,
+        order: 3,
+        data: [0x90, 40, velocities[step]]
+      },
+      {
+        tick: tick + noteLength,
+        order: 2,
+        data: [0x80, 40, 0]
+      }
+    );
+  });
+
+  events.sort((a, b) => a.tick - b.tick || a.order - b.order);
+
+  const track: number[] = [];
+  let previousTick = 0;
+
+  events.forEach((event) => {
+    track.push(
+      ...midiVariableLength(event.tick - previousTick),
+      ...event.data
+    );
+    previousTick = event.tick;
+  });
+
+  const loopEnd = steps.length * ticksPerStep;
+  track.push(
+    ...midiVariableLength(Math.max(0, loopEnd - previousTick)),
+    0xff, 0x2f, 0x00
+  );
+
+  const bytes = Uint8Array.from([
+    0x4d, 0x54, 0x68, 0x64,
+    ...midiUint32(6),
+    0x00, 0x00,
+    0x00, 0x01,
+    (ppq >>> 8) & 255,
+    ppq & 255,
+    0x4d, 0x54, 0x72, 0x6b,
+    ...midiUint32(track.length),
+    ...track
+  ]);
+
+  return new Blob([bytes.buffer], { type: "audio/midi" });
+}
 function playHit(ctx: AudioContext, type: Step, metronome: boolean, isQuarter: boolean, isOne: boolean) {
   const now = ctx.currentTime;
 
@@ -701,7 +829,21 @@ function addGhostNotes() {
 
   mutateSteps(next, "Ghost notes added");
 }
+function exportMidi() {
+  const blob = createMidiBlob(loopSteps, bpm, meter);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
 
+  link.href = url;
+  link.download = `chug-grid-${meter.replace("/", "-")}-${safeTargetBars}-bars.mid`;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  setShareStatus("MIDI exported");
+}
   async function copyRiffLink() {
   const preset: RiffPreset = {
   version: 1,
@@ -857,6 +999,7 @@ function addGhostNotes() {
               <b>{shareStatus || "Copy a playable riff link"}</b>
             </div>
             <button type="button" onClick={copyRiffLink}>COPY RIFF LINK</button>
+                      <button type="button" onClick={exportMidi}>EXPORT MIDI</button>
           </div>
                     <div className="controlDock">
             <div>
