@@ -659,26 +659,34 @@ useEffect(() => {
   }
 
   async function play() {
-    clearPlaybackTimer();
+  clearPlaybackTimer();
+  playingRef.current = false;
+  setPlaying(false);
 
-    try {
-      const ctx = await wakeAudio();
+  try {
+    const oldContext = audioRef.current;
+    audioRef.current = null;
 
-      if (ctx.state !== "running") {
-        stop();
-        setShareStatus("Audio unavailable. Press PLAY again.");
-        return;
-      }
-
-      playingRef.current = true;
-      setPlaying(true);
-      tick();
-    } catch {
-      stop();
-      audioRef.current = null;
-      setShareStatus("Audio reset. Press PLAY again.");
+    if (oldContext && oldContext.state !== "closed") {
+      await oldContext.close().catch(() => undefined);
     }
+
+    const ctx = await wakeAudio();
+
+    if (ctx.state !== "running") {
+      throw new Error("Audio unavailable");
+    }
+
+    playingRef.current = true;
+    setPlaying(true);
+    setShareStatus("");
+    tick();
+  } catch {
+    stop();
+    audioRef.current = null;
+    setShareStatus("Audio reset. Press PLAY again.");
   }
+}
 
   function stop() {
     playingRef.current = false;
