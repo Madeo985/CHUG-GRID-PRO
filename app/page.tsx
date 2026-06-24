@@ -488,17 +488,66 @@ useEffect(() => {
     }
   }, [stepIndex, loopLength]);
 
-  useEffect(() => {
+    useEffect(() => {
+    const pauseForBrowser = () => {
+      playingRef.current = false;
+      setPlaying(false);
+
+      if (timeoutRef.current !== null) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) pauseForBrowser();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", pauseForBrowser);
+
     return () => {
-      if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", pauseForBrowser);
+
+      if (timeoutRef.current !== null) {
+        window.clearTimeout(timeoutRef.current);
+      }
+
       audioRef.current?.close();
     };
   }, []);
 
+  function clearPlaybackTimer() {
+    if (timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }
+
   function ensureAudio() {
-    if (!audioRef.current) audioRef.current = new AudioContext();
-    if (audioRef.current.state === "suspended") audioRef.current.resume();
+    if (!audioRef.current || audioRef.current.state === "closed") {
+      audioRef.current = new AudioContext();
+    }
+
     return audioRef.current;
+  }
+
+  async function wakeAudio() {
+    let ctx = ensureAudio();
+
+    if (ctx.state !== "running") {
+      await ctx.resume();
+    }
+
+    if (ctx.state !== "running") {
+      await ctx.close().catch(() => undefined);
+      audioRef.current = null;
+      ctx = ensureAudio();
+      await ctx.resume();
+    }
+
+    return ctx;
   }
 
   function resetPlayhead() {
@@ -510,6 +559,13 @@ useEffect(() => {
     if (!playingRef.current) return;
 
     const ctx = ensureAudio();
+
+    if (ctx.state !== "running") {
+      stop();
+      setShareStatus("Audio paused by browser. Press PLAY.");
+      return;
+    }
+
     const index = nextStepRef.current % loopLengthRef.current;
     const value = loopStepsRef.current[index] ?? "";
     const isQuarter = index % 4 === 0;
@@ -524,27 +580,32 @@ useEffect(() => {
     timeoutRef.current = window.setTimeout(tick, intervalMs);
   }
 
- async function play() {
-  const ctx = ensureAudio();
+  async function play() {
+    clearPlaybackTimer();
 
-  if (ctx.state !== "running") {
-    await ctx.resume();
+    try {
+      const ctx = await wakeAudio();
+
+      if (ctx.state !== "running") {
+        stop();
+        setShareStatus("Audio unavailable. Press PLAY again.");
+        return;
+      }
+
+      playingRef.current = true;
+      setPlaying(true);
+      tick();
+    } catch {
+      stop();
+      audioRef.current = null;
+      setShareStatus("Audio reset. Press PLAY again.");
+    }
   }
-
-  if (playingRef.current) return;
-
-  playingRef.current = true;
-  setPlaying(true);
-  tick();
-}
 
   function stop() {
     playingRef.current = false;
     setPlaying(false);
-    if (timeoutRef.current) {
-      window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
+    clearPlaybackTimer();
   }
 
   function reset() {
@@ -553,16 +614,18 @@ useEffect(() => {
   }
 
   async function stepOnce() {
-  const ctx = ensureAudio();
+    try {
+      const ctx = await wakeAudio();
+      const index = nextStepRef.current % loopLengthRef.current;
+      const value = loopStepsRef.current[index] ?? "";
 
-  if (ctx.state !== "running") {
-    await ctx.resume();
-  }
-    const index = nextStepRef.current % loopLengthRef.current;
-    const value = loopStepsRef.current[index] ?? "";
-    playHit(ctx, value, metronome, index % 4 === 0, index % barSteps === 0);
-    setStepIndex(index);
-    nextStepRef.current = (index + 1) % loopLengthRef.current;
+      playHit(ctx, value, metronome, index % 4 === 0, index % barSteps === 0);
+      setStepIndex(index);
+      nextStepRef.current = (index + 1) % loopLengthRef.current;
+    } catch {
+      audioRef.current = null;
+      setShareStatus("Audio reset. Press STEP again.");
+    }
   }
 
   function toggleStep(index: number) {
