@@ -306,6 +306,84 @@ function createMidiBlob(steps: Step[], bpm: number, meter: MeterId): Blob {
 
   return new Blob([bytes.buffer], { type: "audio/midi" });
 }
+function createMusicXml(steps: Step[], bpm: number, meter: MeterId): Blob {
+  const [numerator, denominator] = meter.split("/").map(Number);
+  const divisions = 4;
+  const stepDuration = denominator === 8 ? 2 : 1;
+  const noteType = denominator === 8 ? "eighth" : "16th";
+  const stepsPerBar = numerator * (denominator === 8 ? 2 : 4);
+  const measureCount = Math.ceil(steps.length / stepsPerBar);
+  const safeBpm = Math.max(40, Math.min(260, Math.round(bpm)));
+
+  const measures = Array.from({ length: measureCount }, (_, measureIndex) => {
+    const notes = Array.from({ length: stepsPerBar }, (_, stepIndex) => {
+      const step = steps[measureIndex * stepsPerBar + stepIndex] ?? "";
+
+      if (!step) {
+        return `<note><rest/><duration>${stepDuration}</duration><voice>1</voice><type>${noteType}</type></note>`;
+      }
+
+      const notehead =
+        step === "G" ? `<notehead parentheses="yes">x</notehead>` : "";
+
+      const notation =
+        step === "A"
+          ? `<notations><articulations><accent/></articulations></notations>`
+          : step === "U"
+            ? `<notations><articulations><up-bow/></articulations></notations>`
+            : "";
+
+      return `<note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>${stepDuration}</duration>
+<voice>1</voice>
+<type>${noteType}</type>
+${notehead}${notation}
+</note>`;
+    }).join("");
+
+    const setup =
+      measureIndex === 0
+        ? `<attributes>
+<divisions>${divisions}</divisions>
+<key><fifths>0</fifths></key>
+<time><beats>${numerator}</beats><beat-type>${denominator}</beat-type></time>
+<clef><sign>G</sign><line>2</line></clef>
+</attributes>
+<direction placement="above">
+<direction-type>
+<metronome><beat-unit>quarter</beat-unit><per-minute>${safeBpm}</per-minute></metronome>
+</direction-type>
+<sound tempo="${safeBpm}"/>
+</direction>`
+        : "";
+
+    return `<measure number="${measureIndex + 1}">${setup}${notes}</measure>`;
+  }).join("");
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="4.0">
+<work><work-title>CHUG-GRID Riff</work-title></work>
+<part-list>
+<score-part id="P1">
+<part-name>CHUG-GRID Guitar</part-name>
+<score-instrument id="P1-I1">
+<instrument-name>Electric Guitar</instrument-name>
+</score-instrument>
+<midi-instrument id="P1-I1">
+<midi-channel>1</midi-channel>
+<midi-program>31</midi-program>
+</midi-instrument>
+</score-part>
+</part-list>
+<part id="P1">${measures}</part>
+</score-partwise>`;
+
+  return new Blob([xml], {
+    type: "application/vnd.recordare.musicxml+xml"
+  });
+}
 function playHit(ctx: AudioContext, type: Step, metronome: boolean, isQuarter: boolean, isOne: boolean) {
   const now = ctx.currentTime;
 
@@ -1052,6 +1130,21 @@ function exportMidi() {
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
   setShareStatus("MIDI exported");
 }
+  function exportMusicXml() {
+  const blob = createMusicXml(loopSteps, bpm, meter);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = `chug-grid-${meter.replace("/", "-")}-${safeTargetBars}-bars.musicxml`;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  setShareStatus("MusicXML exported");
+}
   async function copyRiffLink() {
   const preset: RiffPreset = {
   version: 1,
@@ -1280,6 +1373,7 @@ function exportMidi() {
             </div>
             <button type="button" onClick={copyRiffLink}>COPY RIFF LINK</button>
                       <button type="button" onClick={exportMidi}>EXPORT MIDI</button>
+                      <button type="button" onClick={exportMusicXml}>EXPORT MUSICXML</button>
           </div>
                     <div className="controlDock">
             <div>
