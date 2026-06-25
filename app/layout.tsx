@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://chug-grid-pro.vercel.app"),
+  metadataBase: new URL("https://chuggrid.com"),
   title: {
     default: "CHUG-GRID PRO",
     template: "%s | CHUG-GRID PRO"
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "CHUG-GRID PRO",
     description: "Generate, visualize, save, and export polymetric metal guitar riffs.",
-    url: "https://chug-grid-pro.vercel.app",
+    url: "https://chuggrid.com",
     siteName: "CHUG-GRID PRO",
     type: "website"
   },
