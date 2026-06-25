@@ -16,6 +16,13 @@ type RiffPreset = {
   sequenceInput: string;
   steps: Step[];
 };
+type SavedPreset = RiffPreset & {
+  id: string;
+  name: string;
+  savedAt: string;
+};
+
+const PRESET_STORAGE_KEY = "chug-grid-presets-v1";
 const meters: Record<MeterId, { label: string; barSteps: number; beatLabels: string[] }> = {
   "3/4": { label: "3/4", barSteps: 12, beatLabels: ["1", "e", "&", "a", "2", "e", "&", "a", "3", "e", "&", "a"] },
   "4/4": { label: "4/4", barSteps: 16, beatLabels: ["1", "e", "&", "a", "2", "e", "&", "a", "3", "e", "&", "a", "4", "e", "&", "a"] },
@@ -170,7 +177,213 @@ function decodePreset(value: string): RiffPreset | null {
     return null;
   }
 }
+type MidiEvent = {
+  tick: number;
+  order: number;
+  data: number[];
+};
 
+function midiUint32(value: number): number[] {
+  return [
+    (value >>> 24) & 255,
+    (value >>> 16) & 255,
+    (value >>> 8) & 255,
+    value & 255
+  ];
+}
+
+function midiVariableLength(value: number): number[] {
+  let buffer = value & 0x7f;
+  const bytes: number[] = [];
+
+  while ((value >>= 7)) {
+    buffer <<= 8;
+    buffer |= (value & 0x7f) | 0x80;
+  }
+
+  while (true) {
+    bytes.push(buffer & 255);
+    if (buffer & 0x80) buffer >>= 8;
+    else break;
+  }
+
+  return bytes;
+}
+
+function createMidiBlob(steps: Step[], bpm: number, meter: MeterId): Blob {
+  const ppq = 480;
+  const ticksPerStep = ppq / 4;
+  const noteLength = Math.round(ticksPerStep * 0.8);
+  const [numerator, denominator] = meter.split("/").map(Number);
+  const tempo = Math.round(60_000_000 / Math.max(40, Math.min(260, bpm)));
+  const denominatorPower = Math.round(Math.log2(denominator));
+  const clocksPerClick =
+    denominator === 8 && numerator % 3 === 0
+      ? 36
+      : denominator === 8
+        ? 12
+        : 24;
+
+  const velocities = {
+    X: 100,
+    U: 84,
+    G: 42,
+    A: 127
+  };
+
+  const events: MidiEvent[] = [
+    {
+      tick: 0,
+      order: 0,
+      data: [
+        0xff, 0x51, 0x03,
+        (tempo >>> 16) & 255,
+        (tempo >>> 8) & 255,
+        tempo & 255
+      ]
+    },
+    {
+      tick: 0,
+      order: 1,
+      data: [
+        0xff, 0x58, 0x04,
+        numerator,
+        denominatorPower,
+        clocksPerClick,
+        8
+      ]
+    }
+  ];
+
+  steps.forEach((step, index) => {
+    if (!step) return;
+
+    const tick = index * ticksPerStep;
+    events.push(
+      {
+        tick,
+        order: 3,
+        data: [0x90, 40, velocities[step]]
+      },
+      {
+        tick: tick + noteLength,
+        order: 2,
+        data: [0x80, 40, 0]
+      }
+    );
+  });
+
+  events.sort((a, b) => a.tick - b.tick || a.order - b.order);
+
+  const track: number[] = [];
+  let previousTick = 0;
+
+  events.forEach((event) => {
+    track.push(
+      ...midiVariableLength(event.tick - previousTick),
+      ...event.data
+    );
+    previousTick = event.tick;
+  });
+
+  const loopEnd = steps.length * ticksPerStep;
+  track.push(
+    ...midiVariableLength(Math.max(0, loopEnd - previousTick)),
+    0xff, 0x2f, 0x00
+  );
+
+  const bytes = Uint8Array.from([
+    0x4d, 0x54, 0x68, 0x64,
+    ...midiUint32(6),
+    0x00, 0x00,
+    0x00, 0x01,
+    (ppq >>> 8) & 255,
+    ppq & 255,
+    0x4d, 0x54, 0x72, 0x6b,
+    ...midiUint32(track.length),
+    ...track
+  ]);
+
+  return new Blob([bytes.buffer], { type: "audio/midi" });
+}
+function createMusicXml(steps: Step[], bpm: number, meter: MeterId): Blob {
+  const [numerator, denominator] = meter.split("/").map(Number);
+  const divisions = 4;
+  const stepDuration = denominator === 8 ? 2 : 1;
+  const noteType = denominator === 8 ? "eighth" : "16th";
+  const stepsPerBar = numerator * (denominator === 8 ? 2 : 4);
+  const measureCount = Math.ceil(steps.length / stepsPerBar);
+  const safeBpm = Math.max(40, Math.min(260, Math.round(bpm)));
+
+  const measures = Array.from({ length: measureCount }, (_, measureIndex) => {
+    const notes = Array.from({ length: stepsPerBar }, (_, stepIndex) => {
+      const step = steps[measureIndex * stepsPerBar + stepIndex] ?? "";
+
+      if (!step) {
+        return `<note><rest/><duration>${stepDuration}</duration><voice>1</voice><type>${noteType}</type></note>`;
+      }
+
+      const notehead =
+        step === "G" ? `<notehead parentheses="yes">x</notehead>` : "";
+
+      const notation =
+        step === "A"
+          ? `<notations><articulations><accent/></articulations></notations>`
+          : step === "U"
+            ? `<notations><articulations><up-bow/></articulations></notations>`
+            : "";
+
+      return `<note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>${stepDuration}</duration>
+<voice>1</voice>
+<type>${noteType}</type>
+${notehead}${notation}
+</note>`;
+    }).join("");
+
+    const setup =
+      measureIndex === 0
+        ? `<attributes>
+<divisions>${divisions}</divisions>
+<key><fifths>0</fifths></key>
+<time><beats>${numerator}</beats><beat-type>${denominator}</beat-type></time>
+<clef><sign>G</sign><line>2</line></clef>
+</attributes>
+<direction placement="above">
+<direction-type>
+<metronome><beat-unit>quarter</beat-unit><per-minute>${safeBpm}</per-minute></metronome>
+</direction-type>
+<sound tempo="${safeBpm}"/>
+</direction>`
+        : "";
+
+    return `<measure number="${measureIndex + 1}">${setup}${notes}</measure>`;
+  }).join("");
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="4.0">
+<work><work-title>CHUG-GRID Riff</work-title></work>
+<part-list>
+<score-part id="P1">
+<part-name>CHUG-GRID Guitar</part-name>
+<score-instrument id="P1-I1">
+<instrument-name>Electric Guitar</instrument-name>
+</score-instrument>
+<midi-instrument id="P1-I1">
+<midi-channel>1</midi-channel>
+<midi-program>31</midi-program>
+</midi-instrument>
+</score-part>
+</part-list>
+<part id="P1">${measures}</part>
+</score-partwise>`;
+
+  return new Blob([xml], {
+    type: "application/vnd.recordare.musicxml+xml"
+  });
+}
 function playHit(ctx: AudioContext, type: Step, metronome: boolean, isQuarter: boolean, isOne: boolean) {
   const now = ctx.currentTime;
 
@@ -180,7 +393,7 @@ function playHit(ctx: AudioContext, type: Step, metronome: boolean, isQuarter: b
     click.type = "square";
     click.frequency.setValueAtTime(isOne ? 1200 : 800, now);
     clickGain.gain.setValueAtTime(0.0001, now);
-    clickGain.gain.exponentialRampToValueAtTime(isOne ? 0.12 : 0.07, now + 0.004);
+    clickGain.gain.exponentialRampToValueAtTime(isOne ? 0.045 : 0.025, now + 0.004);
     clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
     click.connect(clickGain);
     clickGain.connect(ctx.destination);
@@ -243,10 +456,16 @@ export default function Page() {
   const [diceRollCount, setDiceRollCount] = useState(6);
   const [sequenceInput, setSequenceInput] = useState("5 3 4 6 2 5");
   const [shareStatus, setShareStatus] = useState("");
+  const [presetName, setPresetName] = useState("My riff");
+const [savedPresets, setSavedPresets] = useState<SavedPreset[]>([]);
+const [selectedPresetId, setSelectedPresetId] = useState("");
+  const [randomDensity, setRandomDensity] = useState(55);
+const [randomComplexity, setRandomComplexity] = useState(60);
 
    const meterInfo = meters[meter];
   const barSteps = meterInfo.barSteps;
   const labels = meterInfo.beatLabels;
+  const beatCount = Number(meter.split("/")[0]);
   const safeTargetBars = Math.max(1, Math.min(32, Number.isFinite(targetBars) ? Math.floor(targetBars) : 1));
   const loopLength = safeTargetBars * barSteps;
   const loopSteps = useMemo(() => fitStepsToLoop(steps, loopLength), [steps, loopLength]);
@@ -260,6 +479,7 @@ export default function Page() {
   const bpmRef = useRef(bpm);
   const metronomeRef = useRef(metronome);
     const barStepsRef = useRef(barSteps);
+  const generatorVariationRef = useRef(0);
 
   const activeCount = useMemo(() => loopSteps.filter(Boolean).length, [loopSteps]);
   const currentBar = Math.floor(stepIndex / barSteps) + 1;
@@ -326,7 +546,19 @@ autoRealignBars
   resetPlayhead();
   setShareStatus("Shared riff loaded");
 }, []);
+useEffect(() => {
+  try {
+    const stored = window.localStorage.getItem(PRESET_STORAGE_KEY);
+    if (!stored) return;
 
+    const parsed = JSON.parse(stored);
+    if (Array.isArray(parsed)) {
+      setSavedPresets(parsed);
+    }
+  } catch {
+    window.localStorage.removeItem(PRESET_STORAGE_KEY);
+  }
+}, []);
   useEffect(() => {
     if (stepIndex >= loopLength) {
       nextStepRef.current = 0;
@@ -334,17 +566,66 @@ autoRealignBars
     }
   }, [stepIndex, loopLength]);
 
-  useEffect(() => {
+    useEffect(() => {
+    const pauseForBrowser = () => {
+      playingRef.current = false;
+      setPlaying(false);
+
+      if (timeoutRef.current !== null) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) pauseForBrowser();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", pauseForBrowser);
+
     return () => {
-      if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", pauseForBrowser);
+
+      if (timeoutRef.current !== null) {
+        window.clearTimeout(timeoutRef.current);
+      }
+
       audioRef.current?.close();
     };
   }, []);
 
+  function clearPlaybackTimer() {
+    if (timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }
+
   function ensureAudio() {
-    if (!audioRef.current) audioRef.current = new AudioContext();
-    if (audioRef.current.state === "suspended") audioRef.current.resume();
+    if (!audioRef.current || audioRef.current.state === "closed") {
+      audioRef.current = new AudioContext();
+    }
+
     return audioRef.current;
+  }
+
+  async function wakeAudio() {
+    let ctx = ensureAudio();
+
+    if (ctx.state !== "running") {
+      await ctx.resume();
+    }
+
+    if (ctx.state !== "running") {
+      await ctx.close().catch(() => undefined);
+      audioRef.current = null;
+      ctx = ensureAudio();
+      await ctx.resume();
+    }
+
+    return ctx;
   }
 
   function resetPlayhead() {
@@ -356,6 +637,13 @@ autoRealignBars
     if (!playingRef.current) return;
 
     const ctx = ensureAudio();
+
+    if (ctx.state !== "running") {
+      stop();
+      setShareStatus("Audio paused by browser. Press PLAY.");
+      return;
+    }
+
     const index = nextStepRef.current % loopLengthRef.current;
     const value = loopStepsRef.current[index] ?? "";
     const isQuarter = index % 4 === 0;
@@ -370,21 +658,40 @@ autoRealignBars
     timeoutRef.current = window.setTimeout(tick, intervalMs);
   }
 
-  function play() {
-    if (playingRef.current) return;
-    ensureAudio();
+  async function play() {
+  clearPlaybackTimer();
+  playingRef.current = false;
+  setPlaying(false);
+
+  try {
+    const oldContext = audioRef.current;
+    audioRef.current = null;
+
+    if (oldContext && oldContext.state !== "closed") {
+      await oldContext.close().catch(() => undefined);
+    }
+
+    const ctx = await wakeAudio();
+
+    if (ctx.state !== "running") {
+      throw new Error("Audio unavailable");
+    }
+
     playingRef.current = true;
     setPlaying(true);
+    setShareStatus("");
     tick();
+  } catch {
+    stop();
+    audioRef.current = null;
+    setShareStatus("Audio reset. Press PLAY again.");
   }
+}
 
   function stop() {
     playingRef.current = false;
     setPlaying(false);
-    if (timeoutRef.current) {
-      window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
+    clearPlaybackTimer();
   }
 
   function reset() {
@@ -392,13 +699,19 @@ autoRealignBars
     resetPlayhead();
   }
 
-  function stepOnce() {
-    const ctx = ensureAudio();
-    const index = nextStepRef.current % loopLengthRef.current;
-    const value = loopStepsRef.current[index] ?? "";
-    playHit(ctx, value, metronome, index % 4 === 0, index % barSteps === 0);
-    setStepIndex(index);
-    nextStepRef.current = (index + 1) % loopLengthRef.current;
+  async function stepOnce() {
+    try {
+      const ctx = await wakeAudio();
+      const index = nextStepRef.current % loopLengthRef.current;
+      const value = loopStepsRef.current[index] ?? "";
+
+      playHit(ctx, value, metronome, index % 4 === 0, index % barSteps === 0);
+      setStepIndex(index);
+      nextStepRef.current = (index + 1) % loopLengthRef.current;
+    } catch {
+      audioRef.current = null;
+      setShareStatus("Audio reset. Press STEP again.");
+    }
   }
 
   function toggleStep(index: number) {
@@ -418,7 +731,64 @@ autoRealignBars
     setSteps(makeGroupedPattern(groups, loopLength, barSteps));
     resetPlayhead();
   }
+function generateRandomRiff() {
+  const density = randomDensity / 100;
+  const complexity = randomComplexity / 100;
 
+  const availableGroups =
+    complexity < 0.34
+      ? [2, 4, 6]
+      : complexity < 0.67
+        ? [2, 3, 4, 5, 6, 7]
+        : groupValues;
+
+  const groupCount = 3 + Math.round(complexity * 6);
+  const groups = Array.from(
+    { length: groupCount },
+    () =>
+      availableGroups[
+        Math.floor(Math.random() * availableGroups.length)
+      ]
+  );
+
+  const groupedPattern = makeGroupedPattern(
+    groups,
+    loopLength,
+    barSteps
+  );
+
+  const next = groupedPattern.map(
+    (value, index): Step => {
+      const isDownbeat = index % barSteps === 0;
+      const keepChance = 0.25 + density * 0.75;
+      const extraChance =
+        density * (0.08 + complexity * 0.18);
+
+      const active = value
+        ? isDownbeat || Math.random() < keepChance
+        : Math.random() < extraChance;
+
+      if (!active) return "";
+      if (isDownbeat) return "A";
+
+      const chance = Math.random();
+
+      if (chance < 0.58) return "X";
+      if (chance < 0.74) return "U";
+      if (chance < 0.9) return "G";
+      return "A";
+    }
+  );
+
+  stop();
+  setDiceResult(groups);
+  setSequenceInput(groups.join(" "));
+  setSteps(next);
+  resetPlayhead();
+  setShareStatus(
+    `Random riff: density ${randomDensity}% · complexity ${randomComplexity}%`
+  );
+}
   function generateDiceRiff() {
     const rollCount = Math.max(3, Math.min(6, diceRollCount));
     const dice = Array.from(
@@ -435,27 +805,163 @@ autoRealignBars
     applyGroups(groups);
   }
 
-  function generateTargetRiff() {
-    const total = loopLength;
-    const cycleCandidates = [5, 7, 9, 11, 13, 17, 19, 23, 29, 31].filter((n) => n < total && total % n !== 0);
-    const cycle = cycleCandidates[Math.floor(Math.random() * cycleCandidates.length)] ?? 23;
+  function randomItem<T>(items: T[]): T {
+    return items[Math.floor(Math.random() * items.length)];
+  }
 
-    const grouping = [3, 5, 2, 4, 6, 7];
+  function shuffleGroups(groups: number[]): number[] {
+    return [...groups].sort(() => Math.random() - 0.5);
+  }
+
+  function chooseTargetCycle(total: number, minimum: number): number {
+    const exactCycles = Array.from({ length: total - 1 }, (_, index) => index + 2)
+      .filter((cycle) => lcm(cycle, barSteps) === total);
+    const playableCycles = exactCycles.filter((cycle) => cycle >= minimum);
+    const candidates = playableCycles.length ? playableCycles : exactCycles;
+
+    return randomItem(candidates.length ? candidates : [total]);
+  }
+
+  function makeVariedGrouping(targetCycle: number, preferredGroups: number[]): number[] {
+    const groups: number[] = [];
+    let remaining = targetCycle;
+    let guard = 0;
+    let palette = shuffleGroups(preferredGroups);
+    let paletteIndex = generatorVariationRef.current++;
+
+    while (remaining > 0 && guard < 128) {
+      guard++;
+
+      if (remaining <= 4) {
+        groups.push(remaining);
+        break;
+      }
+
+      const avoidPrevious = groups[groups.length - 1];
+      const candidates = palette.filter(
+        (value) =>
+          value <= remaining &&
+          value !== avoidPrevious &&
+          remaining - value !== 1
+      );
+
+      const fallback = preferredGroups.filter(
+        (value) => value <= remaining && remaining - value !== 1
+      );
+      const group = candidates[paletteIndex % candidates.length] ?? randomItem(fallback.length ? fallback : [remaining]);
+
+      groups.push(group);
+      remaining -= group;
+      paletteIndex += Math.random() < 0.45 ? 2 : 1;
+
+      if (paletteIndex >= palette.length) {
+        palette = shuffleGroups(preferredGroups);
+        paletteIndex = 0;
+      }
+    }
+
+    return groups;
+  }
+
+  function writeGeneratedRiff(
+    groups: number[],
+    targetCycle: number,
+    style: "target" | "meshuggah" | "vildhjarta" | "carbomb"
+  ): Step[] {
     const next = Array.from({ length: loopLength }, () => "") as Step[];
-    let pos = 0;
+    const phase = Math.floor(Math.random() * Math.max(1, groups.length));
+    let pos = Math.random() < 0.22 ? randomItem([0, 1, 2]) : 0;
     let groupIndex = 0;
 
-    while (pos < next.length) {
-      next[pos] = pos % cycle === 0 ? "A" : groupIndex % 3 === 0 ? "U" : "X";
-      pos += grouping[groupIndex % grouping.length];
+    while (pos < loopLength) {
+      const localIndex = (groupIndex + phase) % groups.length;
+      const cycleStart = pos % targetCycle === 0 || pos === 0;
+      const downbeat = pos % barSteps === 0;
+      const accentChance = style === "vildhjarta" ? 0.32 : style === "carbomb" ? 0.28 : 0.18;
+      const ghostChance = style === "vildhjarta" ? 0.42 : style === "target" ? 0.2 : 0.12;
+      const upChance = style === "meshuggah" ? 0.14 : style === "carbomb" ? 0.24 : 0.22;
+      const restChance = style === "carbomb" ? 0.18 : style === "vildhjarta" ? 0.08 : 0.04;
+
+      if (Math.random() >= restChance || cycleStart || downbeat) {
+        if (cycleStart || downbeat || localIndex % 7 === 3 || Math.random() < accentChance) {
+          next[pos] = "A";
+        } else if (localIndex % 4 === 2 || Math.random() < upChance) {
+          next[pos] = "U";
+        } else if (Math.random() < ghostChance) {
+          next[pos] = "G";
+        } else {
+          next[pos] = "X";
+        }
+      }
+
+      if ((style === "vildhjarta" || style === "target") && Math.random() < ghostChance) {
+        const ghostIndex = (pos - 1 + loopLength) % loopLength;
+        if (!next[ghostIndex]) next[ghostIndex] = "G";
+      }
+
+      if ((style === "carbomb" || style === "meshuggah") && Math.random() < (style === "carbomb" ? 0.42 : 0.18)) {
+        const stutterIndex = (pos + randomItem([1, 2])) % loopLength;
+        if (!next[stutterIndex]) next[stutterIndex] = style === "carbomb" && Math.random() < 0.35 ? "A" : "X";
+      }
+
+      pos += groups[groupIndex % groups.length];
       groupIndex++;
     }
+
+    return next;
+  }
+
+    function generateTargetRiff() {
+    const total = loopLength;
+    const targetCycle = chooseTargetCycle(total, Math.max(5, Math.floor(barSteps * 0.75)));
+    const grouping = makeVariedGrouping(targetCycle, [2, 3, 5, 7, 4, 6, 9, 11, 13]);
+    const next = writeGeneratedRiff(grouping, targetCycle, "target");
 
     stop();
     setDiceResult(grouping);
     setSequenceInput(grouping.join(" "));
     setSteps(next);
     resetPlayhead();
+    setShareStatus(`Target riff: ${safeTargetBars} bars`);
+  }
+    function generateMeshuggahRiff() {
+    const total = loopLength;
+    const targetCycle = chooseTargetCycle(total, Math.max(7, barSteps));
+    const grouping = makeVariedGrouping(targetCycle, [5, 3, 4, 2, 7, 6, 9, 11, 13, 15]);
+    const next = writeGeneratedRiff(grouping, targetCycle, "meshuggah");
+
+    stop();
+    setDiceResult(grouping);
+    setSequenceInput(grouping.join(" "));
+    setSteps(next);
+    resetPlayhead();
+    setShareStatus(`Meshuggah mode: ${safeTargetBars} bars`);
+  }
+    function generateVildhjartaRiff() {
+    const total = loopLength;
+    const targetCycle = chooseTargetCycle(total, Math.max(7, Math.floor(barSteps * 0.9)));
+    const grouping = makeVariedGrouping(targetCycle, [7, 3, 5, 2, 11, 4, 9, 6, 13]);
+    const next = writeGeneratedRiff(grouping, targetCycle, "vildhjarta");
+
+    stop();
+    setDiceResult(grouping);
+    setSequenceInput(grouping.join(" "));
+    setSteps(next);
+    resetPlayhead();
+    setShareStatus(`Vildhjarta mode: ${safeTargetBars} bars`);
+  }
+    function generateCarBombRiff() {
+    const total = loopLength;
+    const targetCycle = chooseTargetCycle(total, Math.max(5, Math.floor(barSteps * 0.75)));
+    const grouping = makeVariedGrouping(targetCycle, [3, 2, 5, 7, 4, 11, 6, 9, 13]);
+    const next = writeGeneratedRiff(grouping, targetCycle, "carbomb");
+
+    stop();
+    setDiceResult(grouping);
+    setSequenceInput(grouping.join(" "));
+    setSteps(next);
+    resetPlayhead();
+    setShareStatus(`Car Bomb mode: ${safeTargetBars} bars`);
   }
   function mutateSteps(next: Step[], message: string) {
   stop();
@@ -486,7 +992,100 @@ function addGhostNotes() {
 
   mutateSteps(next, "Ghost notes added");
 }
+  function persistPresets(next: SavedPreset[]) {
+  setSavedPresets(next);
+  window.localStorage.setItem(
+    PRESET_STORAGE_KEY,
+    JSON.stringify(next)
+  );
+}
+  function savePreset() {
+  const name =
+    presetName.trim() || `Riff ${savedPresets.length + 1}`;
 
+  const preset: SavedPreset = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    name,
+    savedAt: new Date().toISOString(),
+    version: 1,
+    bpm,
+    targetBars: safeTargetBars,
+    meter,
+    metronome,
+    diceResult,
+    diceRollCount,
+    sequenceInput,
+    steps: loopSteps
+  };
+
+  const next = [preset, ...savedPresets];
+
+  persistPresets(next);
+  setSelectedPresetId(preset.id);
+  setPresetName(name);
+  setShareStatus(`Preset saved: ${name}`);
+}
+  function loadPreset() {
+  const preset = savedPresets.find(
+    (item) => item.id === selectedPresetId
+  );
+
+  if (!preset) return;
+
+  stop();
+  setBpm(preset.bpm);
+  setTargetBars(preset.targetBars);
+  setMeter(preset.meter);
+  setMetronome(preset.metronome);
+  setDiceResult(preset.diceResult);
+  setDiceRollCount(preset.diceRollCount);
+  setSequenceInput(preset.sequenceInput);
+  setSteps(preset.steps);
+  setPresetName(preset.name);
+  resetPlayhead();
+  setShareStatus(`Preset loaded: ${preset.name}`);
+}
+  function deletePreset() {
+  if (!selectedPresetId) return;
+
+  const next = savedPresets.filter(
+    (item) => item.id !== selectedPresetId
+  );
+
+  persistPresets(next);
+  setSelectedPresetId("");
+  setShareStatus("Preset deleted");
+}
+function exportMidi() {
+  const blob = createMidiBlob(loopSteps, bpm, meter);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = `chug-grid-${meter.replace("/", "-")}-${safeTargetBars}-bars.mid`;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  setShareStatus("MIDI exported");
+}
+  function exportMusicXml() {
+  const blob = createMusicXml(loopSteps, bpm, meter);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = `chug-grid-${meter.replace("/", "-")}-${safeTargetBars}-bars.musicxml`;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  setShareStatus("MusicXML exported");
+}
   async function copyRiffLink() {
   const preset: RiffPreset = {
   version: 1,
@@ -549,6 +1148,24 @@ function addGhostNotes() {
             <div className="orbit orbitOuter" />
             <div className="orbit orbitMiddle" />
             <div className="orbit orbitInner" />
+            {Array.from({ length: beatCount }, (_, beat) => {
+  const angle = (beat / beatCount) * 360;
+  const compoundAccent =
+    (meter === "6/8" || meter === "9/8") && beat % 3 === 0;
+
+  return (
+    <span
+      key={`orbit-beat-${beat}`}
+      className={`orbitBeatLabel ${beat === 0 ? "downbeat" : ""} ${compoundAccent ? "compoundAccent" : ""}`}
+      style={{
+        transform: `rotate(${angle}deg) translateY(var(--orbit-label-radius)) rotate(${-angle}deg)`
+      }}
+      aria-hidden="true"
+    >
+      {beat + 1}
+    </span>
+  );
+})}
             <div className="hand handPulse" style={{ transform: `rotate(${pulseAngle}deg)` }} />
             <div className="hand handRiff" style={{ transform: `rotate(${riffAngle}deg)` }} />
             <div className="hand handBar" style={{ transform: `rotate(${playAngle}deg)` }} />
@@ -598,8 +1215,37 @@ function addGhostNotes() {
               <label>Dice rolls</label>
               <input type="number" min="3" max="6" value={diceRollCount} onChange={(e) => setDiceRollCount(Number(e.target.value))} />
             </div>
+            <div className="bpmControl">
+  <label>Density {randomDensity}%</label>
+  <input
+    type="range"
+    min="10"
+    max="100"
+    step="5"
+    value={randomDensity}
+    onChange={(e) => setRandomDensity(Number(e.target.value))}
+  />
+</div>
+
+<div className="bpmControl">
+  <label>Complexity {randomComplexity}%</label>
+  <input
+    type="range"
+    min="0"
+    max="100"
+    step="10"
+    value={randomComplexity}
+    onChange={(e) => setRandomComplexity(Number(e.target.value))}
+  />
+</div>
+            <button type="button" onClick={generateRandomRiff}>
+  RANDOM RIFF
+</button>
             <button type="button" onClick={generateDiceRiff}>ROLL RIFF</button>
             <button type="button" onClick={generateTargetRiff}>TARGET RIFF</button>
+            <button type="button" onClick={generateMeshuggahRiff}>MESHUGGAH</button>
+            <button type="button" onClick={generateVildhjartaRiff}>VILDHJARTA</button>
+            <button type="button" onClick={generateCarBombRiff}>CAR BOMB</button>
             <button type="button" onClick={clearGrid}>CLEAR</button>
           </div>
 
@@ -615,12 +1261,60 @@ function addGhostNotes() {
             </div>
             <button type="button" onClick={generateSequenceRiff}>GENERATE FROM SEQUENCE</button>
           </div>
+          <div className="controlDock">
+  <div className="bpmControl">
+    <label>Preset name</label>
+    <input
+      type="text"
+      value={presetName}
+      onChange={(e) => setPresetName(e.target.value)}
+      placeholder="My riff"
+    />
+  </div>
+
+  <button type="button" onClick={savePreset}>
+    SAVE PRESET
+  </button>
+
+  <div className="bpmControl">
+    <label>Saved presets</label>
+    <select
+      value={selectedPresetId}
+      onChange={(e) => setSelectedPresetId(e.target.value)}
+    >
+      <option value="">Select preset</option>
+      {savedPresets.map((preset) => (
+        <option key={preset.id} value={preset.id}>
+          {preset.name}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <button
+    type="button"
+    onClick={loadPreset}
+    disabled={!selectedPresetId}
+  >
+    LOAD
+  </button>
+
+  <button
+    type="button"
+    onClick={deletePreset}
+    disabled={!selectedPresetId}
+  >
+    DELETE
+  </button>
+</div>
                     <div className="controlDock">
             <div>
               <label>Share</label>
               <b>{shareStatus || "Copy a playable riff link"}</b>
             </div>
             <button type="button" onClick={copyRiffLink}>COPY RIFF LINK</button>
+                      <button type="button" onClick={exportMidi}>EXPORT MIDI</button>
+                      <button type="button" onClick={exportMusicXml}>EXPORT MUSICXML</button>
           </div>
                     <div className="controlDock">
             <div>
