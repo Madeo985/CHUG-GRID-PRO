@@ -2,8 +2,32 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CHUG-GRID PRO",
-  description: "Premium rhythm sketchpad for modern metal guitarists",
+  metadataBase: new URL("https://chug-grid-pro.vercel.app"),
+  title: {
+    default: "CHUG-GRID PRO",
+    template: "%s | CHUG-GRID PRO"
+  },
+  description: "Playable polymetric riff generator and rhythm lab for modern metal guitarists.",
+  keywords: [
+    "polymeter",
+    "riff generator",
+    "metal guitar",
+    "rhythm sequencer",
+    "MIDI export",
+    "MusicXML"
+  ],
+  openGraph: {
+    title: "CHUG-GRID PRO",
+    description: "Generate, visualize, save, and export polymetric metal guitar riffs.",
+    url: "https://chug-grid-pro.vercel.app",
+    siteName: "CHUG-GRID PRO",
+    type: "website"
+  },
+  twitter: {
+    card: "summary",
+    title: "CHUG-GRID PRO",
+    description: "Playable polymetric riff generator and rhythm lab for modern metal guitarists."
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

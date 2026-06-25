@@ -1,6 +1,7 @@
 {
   "name": "chug-grid-pro",
   "private": true,
+  "description": "Playable polymetric riff generator for modern metal guitarists",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
