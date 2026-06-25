@@ -1120,6 +1120,7 @@ function exportMidi() {
           <a href="#app">App</a>
           <a href="#features">Features</a>
           <a href="#workflow">Workflow</a>
+          <a href="https://paypal.me/ironreykh" target="_blank" rel="noreferrer">Support</a>
         </div>
         <a className="navCta" href="#app">Rhythm Engine V3</a>
       </nav>
@@ -1135,6 +1136,7 @@ function exportMidi() {
           <div className="heroActions">
             <a className="primary" href="#app">Open rhythm lab</a>
             <a className="secondary" href="#features">Explore features</a>
+            <a className="secondary" href="https://paypal.me/ironreykh" target="_blank" rel="noreferrer">Support project</a>
           </div>
         </div>
 
