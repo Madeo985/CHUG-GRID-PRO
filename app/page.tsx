@@ -40,8 +40,8 @@ const features = [
   ["Grid View", "16th-note guitar-first sequencer with chugs, ghosts, upstrokes and accents."],
   ["Target Realign", "Choose where the riff returns to the one. CHUG-GRID generates the cycle."],
   ["Dice Engine", "Roll 3-6 rhythmic values and generate polymetric loops instantly."],
-  ["Practice Mode", "Loop strange patterns and feel where the one comes back."],
-  ["Export Ready", "Designed for future MIDI and Guitar Pro workflows."]
+  ["Preset Library", "Save riffs locally, reload ideas instantly and share playable riff links."],
+  ["Export Tools", "Download MIDI or MusicXML loops for DAWs, notation apps and guitar workflows."]
 ];
 
 function nextStep(value: Step): Step {
@@ -1119,7 +1119,7 @@ function exportMidi() {
         <div className="navLinks">
           <a href="#app">App</a>
           <a href="#features">Features</a>
-          <a href="#pricing">Pricing</a>
+          <a href="#workflow">Workflow</a>
         </div>
         <a className="navCta" href="#app">Rhythm Engine V3</a>
       </nav>
@@ -1400,31 +1400,29 @@ function exportMidi() {
 
       <section className="showcase">
         <div>
-          <span className="kicker">MESHUGGAH MODE</span>
-          <h2>Tell it where to return. Let it generate the chaos.</h2>
+          <span className="kicker">REALIGNMENT ENGINE</span>
+          <h2>Generate riffs that leave the barline and land back clean.</h2>
           <p>
-            Pick a target realignment — 5, 7, 11 bars — and CHUG-GRID proposes playable picking grids.
+            Choose a meter, bar target and style engine. CHUG-GRID builds playable picking grids, then shows the cycle against the bar.
           </p>
         </div>
         <div className="statPanel">
-          <div><span>Riff Cycle</span><b>23/16</b></div>
-          <div><span>Bar Cycle</span><b>16/16</b></div>
+          <div><span>Pattern Cycle</span><b>{riffAnalysis.patternCycle} steps</b></div>
+          <div><span>Auto Realign</span><b>{riffAnalysis.autoRealignBars} bars</b></div>
           <div><span>Current Bar</span><b>{currentBar}/{safeTargetBars}</b></div>
         </div>
       </section>
 
-      <section className="pricing" id="pricing">
+      <section className="pricing" id="workflow">
         <div className="priceCard">
-          <span>FREE</span>
-          <h3>Sketch</h3>
-          <p>Orbit, grid, dice and basic playback.</p>
-          <button>Start free</button>
+          <span>GENERATE</span>
+          <h3>Find a starting point</h3>
+          <p>Roll grouped rhythms, use style modes, or type a custom sequence to create a riff foundation.</p>
         </div>
         <div className="priceCard pro">
-          <span>PRO</span>
-          <h3>Studio</h3>
-          <p>Audio Detective, advanced export, cloud presets and AI riff tools.</p>
-          <button>Coming soon</button>
+          <span>FINISH</span>
+          <h3>Save, share, export</h3>
+          <p>Store presets, copy a playable link, or export MIDI and MusicXML for the next production step.</p>
         </div>
       </section>
     </main>
