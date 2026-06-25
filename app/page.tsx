@@ -805,6 +805,7 @@ function generateRandomRiff() {
     applyGroups(groups);
   }
 
+<<<<<<< HEAD
   function randomItem<T>(items: T[]): T {
     return items[Math.floor(Math.random() * items.length)];
   }
@@ -905,6 +906,51 @@ function generateRandomRiff() {
       }
 
       pos += groups[groupIndex % groups.length];
+=======
+    function generateTargetRiff() {
+    const total = loopLength;
+    const targetCycle =
+      Array.from({ length: total - 1 }, (_, index) => index + 2)
+        .find((cycle) => lcm(cycle, barSteps) === total) ?? total;
+
+    const preferredGroups = [2, 3, 5, 7, 4, 6, 9, 11];
+    const grouping: number[] = [];
+    let remaining = targetCycle;
+    let preferenceIndex = generatorVariationRef.current++;
+
+    while (remaining > 0) {
+      if (remaining <= 4) {
+        grouping.push(remaining);
+        break;
+      }
+
+      const candidates = preferredGroups.filter(
+        (value) => value <= remaining && remaining - value !== 1
+      );
+      const group =
+        candidates[preferenceIndex % candidates.length] ?? remaining;
+
+      grouping.push(group);
+      remaining -= group;
+      preferenceIndex++;
+    }
+
+    const next = Array.from({ length: total }, () => "") as Step[];
+    let pos = 0;
+    let groupIndex = 0;
+
+    while (pos < total) {
+      next[pos] =
+        pos % targetCycle === 0
+          ? "A"
+          : groupIndex % 5 === 3
+            ? "G"
+            : groupIndex % 3 === 1
+              ? "U"
+              : "X";
+
+      pos += grouping[groupIndex % grouping.length];
+>>>>>>> 0ea7d9ef3b90f29db65d7156babb547edebc5b92
       groupIndex++;
     }
 
@@ -926,9 +972,53 @@ function generateRandomRiff() {
   }
     function generateMeshuggahRiff() {
     const total = loopLength;
+<<<<<<< HEAD
     const targetCycle = chooseTargetCycle(total, Math.max(7, barSteps));
     const grouping = makeVariedGrouping(targetCycle, [5, 3, 4, 2, 7, 6, 9, 11, 13, 15]);
     const next = writeGeneratedRiff(grouping, targetCycle, "meshuggah");
+=======
+    const targetCycle =
+      Array.from({ length: total - 1 }, (_, index) => index + 2)
+        .find((cycle) => lcm(cycle, barSteps) === total) ?? total;
+
+    const preferredGroups = [5, 3, 4, 2, 7, 6, 9, 11];
+    const grouping: number[] = [];
+    let remaining = targetCycle;
+    let preferenceIndex = generatorVariationRef.current++;
+
+    while (remaining > 0) {
+      if (remaining <= 4) {
+        grouping.push(remaining);
+        break;
+      }
+
+      const candidates = preferredGroups.filter(
+        (value) => value <= remaining && remaining - value !== 1
+      );
+      const group =
+        candidates[preferenceIndex % candidates.length] ?? remaining;
+
+      grouping.push(group);
+      remaining -= group;
+      preferenceIndex++;
+    }
+
+    const next = Array.from({ length: total }, () => "") as Step[];
+    let pos = 0;
+    let groupIndex = 0;
+
+    while (pos < total) {
+      next[pos] =
+        pos % targetCycle === 0
+          ? "A"
+          : groupIndex % 4 === 2
+            ? "U"
+            : "X";
+
+      pos += grouping[groupIndex % grouping.length];
+      groupIndex++;
+    }
+>>>>>>> 0ea7d9ef3b90f29db65d7156babb547edebc5b92
 
     stop();
     setDiceResult(grouping);
@@ -939,9 +1029,60 @@ function generateRandomRiff() {
   }
     function generateVildhjartaRiff() {
     const total = loopLength;
+<<<<<<< HEAD
     const targetCycle = chooseTargetCycle(total, Math.max(7, Math.floor(barSteps * 0.9)));
     const grouping = makeVariedGrouping(targetCycle, [7, 3, 5, 2, 11, 4, 9, 6, 13]);
     const next = writeGeneratedRiff(grouping, targetCycle, "vildhjarta");
+=======
+    const targetCycle =
+      Array.from({ length: total - 1 }, (_, index) => index + 2)
+        .find((cycle) => lcm(cycle, barSteps) === total) ?? total;
+
+    const preferredGroups = [7, 3, 5, 2, 11, 4, 9, 6];
+    const grouping: number[] = [];
+    let remaining = targetCycle;
+    let preferenceIndex = generatorVariationRef.current++;
+
+    while (remaining > 0) {
+      if (remaining <= 4) {
+        grouping.push(remaining);
+        break;
+      }
+
+      const candidates = preferredGroups.filter(
+        (value) => value <= remaining && remaining - value !== 1
+      );
+      const group =
+        candidates[preferenceIndex % candidates.length] ?? remaining;
+
+      grouping.push(group);
+      remaining -= group;
+      preferenceIndex++;
+    }
+
+    const next = Array.from({ length: total }, () => "") as Step[];
+    let pos = 0;
+    let groupIndex = 0;
+
+    while (pos < total) {
+      const localIndex = groupIndex % grouping.length;
+
+      next[pos] =
+        localIndex === 0 || localIndex % 5 === 3
+          ? "A"
+          : localIndex % 3 === 2
+            ? "U"
+            : "X";
+
+      if (localIndex % 2 === 1) {
+        const ghostIndex = (pos - 1 + total) % total;
+        if (!next[ghostIndex]) next[ghostIndex] = "G";
+      }
+
+      pos += grouping[localIndex];
+      groupIndex++;
+    }
+>>>>>>> 0ea7d9ef3b90f29db65d7156babb547edebc5b92
 
     stop();
     setDiceResult(grouping);
@@ -952,9 +1093,65 @@ function generateRandomRiff() {
   }
     function generateCarBombRiff() {
     const total = loopLength;
+<<<<<<< HEAD
     const targetCycle = chooseTargetCycle(total, Math.max(5, Math.floor(barSteps * 0.75)));
     const grouping = makeVariedGrouping(targetCycle, [3, 2, 5, 7, 4, 11, 6, 9, 13]);
     const next = writeGeneratedRiff(grouping, targetCycle, "carbomb");
+=======
+    const targetCycle =
+      Array.from({ length: total - 1 }, (_, index) => index + 2)
+        .find((cycle) => lcm(cycle, barSteps) === total) ?? total;
+
+    const preferredGroups = [3, 2, 5, 7, 4, 11, 6, 9];
+    const grouping: number[] = [];
+    let remaining = targetCycle;
+    let preferenceIndex = generatorVariationRef.current++;
+
+    while (remaining > 0) {
+      if (remaining <= 4) {
+        grouping.push(remaining);
+        break;
+      }
+
+      const candidates = preferredGroups.filter(
+        (value) => value <= remaining && remaining - value !== 1
+      );
+      const group =
+        candidates[preferenceIndex % candidates.length] ?? remaining;
+
+      grouping.push(group);
+      remaining -= group;
+      preferenceIndex++;
+    }
+
+    const next = Array.from({ length: total }, () => "") as Step[];
+    let pos = 0;
+    let groupIndex = 0;
+
+    while (pos < total) {
+      const localIndex = groupIndex % grouping.length;
+      const shouldRest = localIndex % 5 === 4;
+
+      if (!shouldRest) {
+        next[pos] =
+          localIndex === 0 || localIndex % 4 === 3
+            ? "A"
+            : localIndex % 3 === 1
+              ? "U"
+              : "X";
+
+        if (localIndex % 2 === 0) {
+          const stutterIndex = (pos + 1) % total;
+          if (!next[stutterIndex]) {
+            next[stutterIndex] = localIndex % 4 === 0 ? "A" : "X";
+          }
+        }
+      }
+
+      pos += grouping[localIndex];
+      groupIndex++;
+    }
+>>>>>>> 0ea7d9ef3b90f29db65d7156babb547edebc5b92
 
     stop();
     setDiceResult(grouping);
