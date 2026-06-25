@@ -44,6 +44,30 @@ const features = [
   ["Export Tools", "Download MIDI or MusicXML loops for DAWs, notation apps and guitar workflows."]
 ];
 
+const supportCards = [
+  {
+    label: "SUPPORT",
+    title: "Help keep CHUG-GRID alive",
+    text: "Send a one-off tip if the rhythm engine helps you write, practice or break out of the same riff shapes.",
+    action: "Support on PayPal",
+    href: "https://paypal.me/ironreykh"
+  },
+  {
+    label: "PACKS",
+    title: "Free MIDI starter pack",
+    text: "Next step: a small downloadable pack of odd-meter metal riffs that can also start the email list.",
+    action: "Coming next",
+    href: ""
+  },
+  {
+    label: "GEAR",
+    title: "Affiliate picks for metal writing",
+    text: "When Reverb approves the partner request, this becomes a curated gear page for guitars, pedals and studio tools.",
+    action: "Pending Reverb",
+    href: ""
+  }
+];
+
 function nextStep(value: Step): Step {
   const index = stepCycle.indexOf(value);
   return stepCycle[(index + 1) % stepCycle.length];
@@ -1119,6 +1143,7 @@ function exportMidi() {
         <div className="navLinks">
           <a href="#app">App</a>
           <a href="#features">Features</a>
+          <a href="#support">Packs</a>
           <a href="#workflow">Workflow</a>
           <a href="https://paypal.me/ironreykh" target="_blank" rel="noreferrer">Support</a>
         </div>
@@ -1412,6 +1437,35 @@ function exportMidi() {
           <div><span>Pattern Cycle</span><b>{riffAnalysis.patternCycle} steps</b></div>
           <div><span>Auto Realign</span><b>{riffAnalysis.autoRealignBars} bars</b></div>
           <div><span>Current Bar</span><b>{currentBar}/{safeTargetBars}</b></div>
+        </div>
+      </section>
+
+      <section className="section supportSection" id="support">
+        <div className="sectionHeader">
+          <span>SUPPORT THE RHYTHM LAB</span>
+          <h2>Free riffs first, paid packs later.</h2>
+          <p>
+            CHUG-GRID is built for guitarists, drummers and producers who need modern metal MIDI riffs,
+            odd-meter practice loops and polymetric writing ideas without opening a blank DAW session.
+          </p>
+        </div>
+        <div className="supportGrid">
+          {supportCards.map((card) => (
+            <article className="supportCard" key={card.title}>
+              <span>{card.label}</span>
+              <h3>{card.title}</h3>
+              <p>{card.text}</p>
+              {card.href ? (
+                <a className="secondary" href={card.href} target="_blank" rel="noreferrer">
+                  {card.action}
+                </a>
+              ) : (
+                <button type="button" disabled>
+                  {card.action}
+                </button>
+              )}
+            </article>
+          ))}
         </div>
       </section>
 
