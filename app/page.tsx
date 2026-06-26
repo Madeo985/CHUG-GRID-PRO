@@ -55,9 +55,9 @@ const supportCards = [
   {
     label: "PACKS",
     title: "Free MIDI starter pack",
-    text: "Next step: a small downloadable pack of odd-meter metal riffs that can also start the email list.",
-    action: "Coming next",
-    href: ""
+    text: "Download 10 odd-meter metal riff loops as MIDI and MusicXML files for DAWs, notation apps and writing sessions.",
+    action: "Download free pack",
+    href: "https://matteoferraro.gumroad.com/l/inznd"
   },
   {
     label: "GEAR",
