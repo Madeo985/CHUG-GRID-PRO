@@ -68,6 +68,22 @@ const supportCards = [
   }
 ];
 
+const workflowSteps = [
+  ["1", "Generate", "Pick a meter, target length and style engine, then generate a riff grid."],
+  ["2", "Shape", "Edit chugs, upstrokes, ghost notes and accents directly on the playable grid."],
+  ["3", "Check", "Use the orbit view to see where the pattern cycles against the barline."],
+  ["4", "Export", "Download MIDI or MusicXML and drag the loop into your DAW or notation app."]
+];
+
+const seoTopics = [
+  "metal MIDI riff generator",
+  "odd-meter riff generator",
+  "polymeter guitar riff tool",
+  "djent rhythm generator",
+  "MusicXML metal riff export",
+  "progressive metal practice loops"
+];
+
 function nextStep(value: Step): Step {
   const index = stepCycle.indexOf(value);
   return stepCycle[(index + 1) % stepCycle.length];
@@ -1143,6 +1159,7 @@ function exportMidi() {
         <div className="navLinks">
           <a href="#app">App</a>
           <a href="#features">Features</a>
+          <a href="#how-to-use">How to use</a>
           <a href="#support">Packs</a>
           <a href="#workflow">Workflow</a>
           <a href="https://paypal.me/ironreykh" target="_blank" rel="noreferrer">Support</a>
@@ -1437,6 +1454,43 @@ function exportMidi() {
           <div><span>Pattern Cycle</span><b>{riffAnalysis.patternCycle} steps</b></div>
           <div><span>Auto Realign</span><b>{riffAnalysis.autoRealignBars} bars</b></div>
           <div><span>Current Bar</span><b>{currentBar}/{safeTargetBars}</b></div>
+        </div>
+      </section>
+
+      <section className="section howToSection" id="how-to-use">
+        <div className="sectionHeader">
+          <span>HOW TO USE CHUG-GRID</span>
+          <h2>From empty grid to DAW-ready riff loop.</h2>
+          <p>
+            CHUG-GRID is built for fast writing sessions: generate a modern metal rhythm idea,
+            adjust the picking grid, then export the loop before the momentum disappears.
+          </p>
+        </div>
+        <div className="workflowGrid">
+          {workflowSteps.map(([number, title, text]) => (
+            <article className="workflowCard" key={title}>
+              <span>{number}</span>
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="seoSection" aria-labelledby="seo-title">
+        <div>
+          <span className="kicker">FREE METAL MIDI RIFF GENERATOR</span>
+          <h2 id="seo-title">Write odd-meter riffs without staring at a blank piano roll.</h2>
+          <p>
+            Use CHUG-GRID as a metal MIDI riff generator for djent, progressive metal,
+            polymeter practice, odd-time guitar grooves and rhythmic sketching. Build a riff,
+            listen to the pulse, export MIDI or MusicXML, then finish the idea in your DAW.
+          </p>
+        </div>
+        <div className="topicList" aria-label="CHUG-GRID use cases">
+          {seoTopics.map((topic) => (
+            <span key={topic}>{topic}</span>
+          ))}
         </div>
       </section>
 
