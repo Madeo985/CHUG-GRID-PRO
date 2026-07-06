@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="4.0">
+<work><work-title>Car Bomb-style stutter A</work-title></work>
+<part-list>
+<score-part id="P1">
+<part-name>CHUG-GRID Guitar</part-name>
+<score-instrument id="P1-I1"><instrument-name>Electric Guitar</instrument-name></score-instrument>
+<midi-instrument id="P1-I1"><midi-channel>1</midi-channel><midi-program>31</midi-program></midi-instrument>
+</score-part>
+</part-list>
+<part id="P1"><measure number="1"><attributes>
+<divisions>4</divisions>
+<key><fifths>0</fifths></key>
+<time><beats>4</beats><beat-type>4</beat-type></time>
+<clef><sign>G</sign><line>2</line></clef>
+</attributes>
+<direction placement="above">
+<direction-type>
+<metronome><beat-unit>quarter</beat-unit><per-minute>158</per-minute></metronome>
+</direction-type>
+<sound tempo="158"/>
+</direction><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+<notations><articulations><accent/></articulations></notations>
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+<notations><articulations><up-bow/></articulations></notations>
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+<notehead parentheses="yes">x</notehead>
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note></measure><measure number="2"><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+<notations><articulations><accent/></articulations></notations>
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note></measure><measure number="3"><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+<notations><articulations><accent/></articulations></notations>
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+<notehead parentheses="yes">x</notehead>
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note></measure><measure number="4"><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+<notations><articulations><accent/></articulations></notations>
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+<notations><articulations><up-bow/></articulations></notations>
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note></measure><measure number="5"><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+<notations><articulations><accent/></articulations></notations>
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+<notehead parentheses="yes">x</notehead>
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note><note>
+<pitch><step>E</step><octave>2</octave></pitch>
+<duration>1</duration>
+<voice>1</voice>
+<type>16th</type>
+
+</note><note><rest/><duration>1</duration><voice>1</voice><type>16th</type></note></measure></part>
+</score-partwise>

@@ -13,6 +13,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.9
+    },
+    {
+      url: "https://chuggrid.com/modern-metal-midi-pack-vol-1",
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8
     }
   ];
 }

@@ -60,6 +60,13 @@ const supportCards = [
     href: "https://matteoferraro.gumroad.com/l/inznd"
   },
   {
+    label: "PREMIUM",
+    title: "Modern Metal MIDI Pack Vol. 1",
+    text: "A 50-riff premium pack is ready for Gumroad: MIDI, MusicXML, odd-meter cycles and DAW-friendly modern metal writing prompts.",
+    action: "View premium pack",
+    href: "/modern-metal-midi-pack-vol-1"
+  },
+  {
     label: "GEAR",
     title: "Affiliate picks for metal writing",
     text: "When Reverb approves the partner request, this becomes a curated gear page for guitars, pedals and studio tools.",
