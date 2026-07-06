@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 const freePackUrl = "https://matteoferraro.gumroad.com/l/inznd";
-const supportUrl = "https://paypal.me/ironreykh";
+const premiumPackUrl = "https://matteoferraro.gumroad.com/l/itawg";
 
 const contents = [
   "50 MIDI riff loops",
@@ -81,11 +81,11 @@ export default function ModernMetalMidiPackVol1Page() {
             layer drums, or use the MusicXML files as notation starting points.
           </p>
           <div className="heroActions">
-            <a className="primary" href={freePackUrl} target="_blank" rel="noreferrer">
-              Get the free starter pack
+            <a className="primary" href={premiumPackUrl} target="_blank" rel="noreferrer">
+              Get the premium pack
             </a>
-            <a className="secondary" href={supportUrl} target="_blank" rel="noreferrer">
-              Support CHUG-GRID
+            <a className="secondary" href={freePackUrl} target="_blank" rel="noreferrer">
+              Try the free pack
             </a>
           </div>
         </div>
@@ -113,9 +113,12 @@ export default function ModernMetalMidiPackVol1Page() {
             give you usable starting points quickly.
           </p>
           <p>
-            Launch plan: publish it on Gumroad at 9 EUR, link it from this page, then keep the free
-            pack as the lead magnet that sends writers toward the premium version.
+            The launch offer is live on Gumroad. Keep the free pack as the lead magnet, then send
+            writers here when they want the full 50-riff version.
           </p>
+          <a className="primary" href={premiumPackUrl} target="_blank" rel="noreferrer">
+            Buy Modern Metal MIDI Pack Vol. 1
+          </a>
         </article>
       </section>
 

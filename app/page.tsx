@@ -23,6 +23,7 @@ type SavedPreset = RiffPreset & {
 };
 
 const PRESET_STORAGE_KEY = "chug-grid-presets-v1";
+const PREMIUM_PACK_URL = "https://matteoferraro.gumroad.com/l/itawg";
 const meters: Record<MeterId, { label: string; barSteps: number; beatLabels: string[] }> = {
   "3/4": { label: "3/4", barSteps: 12, beatLabels: ["1", "e", "&", "a", "2", "e", "&", "a", "3", "e", "&", "a"] },
   "4/4": { label: "4/4", barSteps: 16, beatLabels: ["1", "e", "&", "a", "2", "e", "&", "a", "3", "e", "&", "a", "4", "e", "&", "a"] },
@@ -62,9 +63,9 @@ const supportCards = [
   {
     label: "PREMIUM",
     title: "Modern Metal MIDI Pack Vol. 1",
-    text: "A 50-riff premium pack is ready for Gumroad: MIDI, MusicXML, odd-meter cycles and DAW-friendly modern metal writing prompts.",
-    action: "View premium pack",
-    href: "/modern-metal-midi-pack-vol-1"
+    text: "Get 50 DAW-ready modern metal MIDI riffs with matching MusicXML files, odd-meter cycles and production-friendly writing prompts.",
+    action: "Get premium pack",
+    href: PREMIUM_PACK_URL
   },
   {
     label: "GEAR",
