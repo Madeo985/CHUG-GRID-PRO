@@ -1,5 +1,6 @@
-const { mkdirSync, readFileSync, writeFileSync } = require("node:fs");
+const { mkdirSync, writeFileSync } = require("node:fs");
 const { join } = require("node:path");
+const { pathToFileURL } = require("node:url");
 const { chromium } = require("/Users/matteodelferraro/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright");
 
 const root = "/Users/matteodelferraro/Documents/GitHub/CHUG-GRID-PRO";
@@ -21,12 +22,12 @@ mkdirSync(demoDir, { recursive: true });
   });
   page.on("console", (message) => console.log(`[browser] ${message.text()}`));
 
-  const videoData = readFileSync(inputVideo).toString("base64");
+  const videoUrl = pathToFileURL(inputVideo).href;
   await page.setContent(`
     <html>
       <body style="margin:0;background:#050505;overflow:hidden">
         <canvas id="canvas" width="1280" height="720"></canvas>
-        <video id="source" muted playsinline src="data:video/webm;base64,${videoData}"></video>
+        <video id="source" muted playsinline src="${videoUrl}"></video>
       </body>
     </html>
   `);
