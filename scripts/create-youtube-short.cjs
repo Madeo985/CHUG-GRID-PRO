@@ -63,10 +63,18 @@ function createVideoServer() {
     const width = canvas.width;
     const height = canvas.height;
 
+    console.log("waiting for source metadata");
     await new Promise((resolve, reject) => {
+      if (source.readyState >= 1) {
+        resolve();
+        return;
+      }
       source.onloadedmetadata = resolve;
       source.onerror = reject;
+      source.load();
+      setTimeout(() => reject(new Error("Source metadata timeout")), 10000);
     });
+    console.log(`source metadata loaded: ${source.duration}s`);
 
     const totalDuration = Math.min(source.duration || 20.2, 20.2);
     const audioContext = new AudioContext({ sampleRate: 48000 });
@@ -364,7 +372,9 @@ function createVideoServer() {
     };
 
     await audioContext.resume();
+    console.log("audio context ready");
     const audioStart = scheduleAudio();
+    console.log("audio scheduled");
 
     let drawing = true;
     function loop() {
@@ -375,26 +385,32 @@ function createVideoServer() {
 
     loop();
     recorder.start(250);
+    console.log("recorder started");
     await new Promise((resolve) => setTimeout(resolve, Math.max(0, (audioStart - audioContext.currentTime) * 1000)));
     await source.play();
+    console.log("source playing");
     await new Promise((resolve) => setTimeout(resolve, Math.ceil((totalDuration + 0.45) * 1000)));
 
     drawing = false;
+    console.log("stopping recorder");
     const stopped = new Promise((resolve) => {
       recorder.onstop = resolve;
     });
     recorder.stop();
     await stopped;
+    console.log(`recorder stopped: ${chunks.length} chunks`);
 
     source.pause();
     await new Promise((resolve) => {
       source.onseeked = resolve;
       source.currentTime = 1.15;
+      setTimeout(resolve, 1000);
     });
     drawFrame();
 
     await audioContext.close();
     const videoBlob = new Blob(chunks, { type: mimeType });
+    console.log(`short blob size: ${videoBlob.size}`);
     const thumbData = canvas.toDataURL("image/png").split(",")[1];
 
     return {
