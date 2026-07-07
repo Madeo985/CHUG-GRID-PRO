@@ -1,6 +1,6 @@
-const { mkdirSync, writeFileSync } = require("node:fs");
+const { createReadStream, mkdirSync, writeFileSync } = require("node:fs");
+const { createServer } = require("node:http");
 const { join } = require("node:path");
-const { pathToFileURL } = require("node:url");
 const { chromium } = require("/Users/matteodelferraro/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright");
 
 const root = "/Users/matteodelferraro/Documents/GitHub/CHUG-GRID-PRO";
@@ -10,7 +10,38 @@ const outputVideo = join(demoDir, "chug-grid-demo-with-audio.webm");
 
 mkdirSync(demoDir, { recursive: true });
 
+function createVideoServer() {
+  const server = createServer((request, response) => {
+    if (request.url === "/chug-grid-demo.webm") {
+      response.writeHead(200, {
+        "Content-Type": "video/webm",
+        "Cache-Control": "no-store"
+      });
+      createReadStream(inputVideo).pipe(response);
+      return;
+    }
+
+    response.writeHead(200, { "Content-Type": "text/html" });
+    response.end(`
+      <html>
+        <body style="margin:0;background:#050505;overflow:hidden">
+          <canvas id="canvas" width="1280" height="720"></canvas>
+          <video id="source" muted playsinline src="/chug-grid-demo.webm"></video>
+        </body>
+      </html>
+    `);
+  });
+
+  return new Promise((resolve) => {
+    server.listen(0, "127.0.0.1", () => {
+      const { port } = server.address();
+      resolve({ server, url: `http://127.0.0.1:${port}` });
+    });
+  });
+}
+
 (async () => {
+  const videoServer = await createVideoServer();
   const browser = await chromium.launch({
     headless: true,
     args: ["--autoplay-policy=no-user-gesture-required"]
@@ -22,15 +53,7 @@ mkdirSync(demoDir, { recursive: true });
   });
   page.on("console", (message) => console.log(`[browser] ${message.text()}`));
 
-  const videoUrl = pathToFileURL(inputVideo).href;
-  await page.setContent(`
-    <html>
-      <body style="margin:0;background:#050505;overflow:hidden">
-        <canvas id="canvas" width="1280" height="720"></canvas>
-        <video id="source" muted playsinline src="${videoUrl}"></video>
-      </body>
-    </html>
-  `);
+  await page.goto(videoServer.url, { waitUntil: "domcontentloaded" });
 
   const bytes = await page.evaluate(async () => {
     console.log("loading source video");
@@ -171,6 +194,7 @@ mkdirSync(demoDir, { recursive: true });
 
   writeFileSync(outputVideo, Buffer.from(bytes));
   await browser.close();
+  videoServer.server.close();
   console.log(outputVideo);
 })().catch(async (error) => {
   console.error(error);
