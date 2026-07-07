@@ -138,6 +138,40 @@ function createVideoServer() {
       ctx.restore();
     }
 
+    function drawOrbitSpotlight(x, y, size) {
+      const sx = 610;
+      const sy = 78;
+      const sw = 565;
+      const sh = 565;
+
+      ctx.save();
+      ctx.shadowColor = "rgba(54,214,231,.42)";
+      ctx.shadowBlur = 54;
+      ctx.shadowOffsetY = 16;
+      roundedRect(x - 10, y - 10, size + 20, size + 20, 38);
+      ctx.fillStyle = "rgba(54,214,231,.14)";
+      ctx.fill();
+      roundedRect(x, y, size, size, 32);
+      ctx.clip();
+      ctx.drawImage(source, sx, sy, sw, sh, x, y, size, size);
+      ctx.restore();
+
+      ctx.save();
+      ctx.strokeStyle = "rgba(54,214,231,.86)";
+      ctx.lineWidth = 4;
+      roundedRect(x, y, size, size, 32);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(3,4,6,.84)";
+      roundedRect(x + 28, y + size - 94, size - 56, 58, 18);
+      ctx.fill();
+      ctx.fillStyle = "#36d6e7";
+      ctx.font = "900 28px Inter, Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("ORBIT VIEW: SEE WHERE THE RIFF LANDS", x + size / 2, y + size - 55);
+      ctx.textAlign = "left";
+      ctx.restore();
+    }
+
     function wrapText(text, x, y, maxWidth, lineHeight) {
       const words = text.split(" ");
       let line = "";
@@ -158,44 +192,44 @@ function createVideoServer() {
       {
         start: 0,
         end: 2.65,
-        title: "STOP WRITING BORING RIFFS",
-        kicker: "ODD-METER METAL",
-        detail: "Generate chug patterns that actually move."
+        title: "MAKE METAL RIFFS IN ODD METERS",
+        kicker: "WHAT IS CHUG-GRID?",
+        detail: "A browser tool that generates playable chug riffs for your DAW."
       },
       {
         start: 2.65,
         end: 5.35,
-        title: "PICK THE METER",
+        title: "PICK A METER + FEEL",
         kicker: "7/8, 5/4, 13/16",
-        detail: "Build riffs around cycles, accents and groupings."
+        detail: "Choose odd meters, loop length, accents and riff style."
       },
       {
         start: 5.35,
         end: 8.75,
         title: "ONE CLICK. NEW RIFF.",
         kicker: "MESHUGGAH / VILDHJARTA / CAR BOMB",
-        detail: "Switch engines and mutate the grid."
+        detail: "Generate variations instead of writing the same pattern again."
       },
       {
         start: 8.75,
         end: 12.55,
-        title: "SEE THE LOOP REALIGN",
+        title: "WATCH THE ORBIT MOVE",
         kicker: "RHYTHM ORBIT",
-        detail: "Watch where the pattern lands against the bar."
+        detail: "The moving orbit shows how the riff shifts against the barline."
       },
       {
         start: 12.55,
         end: 16.3,
         title: "EXPORT TO YOUR DAW",
         kicker: "MIDI + MUSICXML",
-        detail: "Drag the idea straight into production."
+        detail: "Download MIDI or MusicXML and drop the riff into your project."
       },
       {
         start: 16.3,
         end: 99,
-        title: "FREE GENERATOR + RIFF PACK",
+        title: "TRY IT FREE",
         kicker: "CHUGGRID.COM",
-        detail: "Grab the free loops. Upgrade when you need more."
+        detail: "Use the generator, grab free loops, then upgrade for the full pack."
       }
     ];
 
@@ -259,7 +293,11 @@ function createVideoServer() {
       wrapText(scene.detail, 70, 498, 880, 46);
 
       const videoY = 660 + Math.sin(time * 1.5) * 8;
-      drawVideoContain(52, videoY, 976, 610);
+      if (scene.kicker === "RHYTHM ORBIT") {
+        drawOrbitSpotlight(160, 622, 760);
+      } else {
+        drawVideoContain(52, videoY, 976, 610);
+      }
 
       const progress = Math.min(1, time / totalDuration);
       ctx.fillStyle = "rgba(255,255,255,.13)";
@@ -282,7 +320,7 @@ function createVideoServer() {
 
       ctx.fillStyle = "#fff";
       ctx.font = "950 46px Inter, Arial, sans-serif";
-      ctx.fillText("Free metal MIDI riff generator", 112, 1522);
+      ctx.fillText("Generate riffs. Export MIDI.", 112, 1522);
       ctx.fillStyle = "#efb76d";
       ctx.font = "900 38px Inter, Arial, sans-serif";
       ctx.fillText("chuggrid.com", 112, 1586);
