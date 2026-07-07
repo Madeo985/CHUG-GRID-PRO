@@ -212,8 +212,8 @@ function createVideoServer() {
     function drawFrame() {
       const time = source.currentTime;
       const scene = currentScene(time);
-      const local = Math.max(0, Math.min(1, (time - scene.start) / 0.55));
-      const pop = easeOutBack(local);
+      const local = Number.isFinite(time) ? Math.max(0, Math.min(1, (time - scene.start) / 0.55)) : 1;
+      const pop = Number.isFinite(local) ? easeOutBack(local) : 1;
 
       ctx.clearRect(0, 0, width, height);
       drawVideoCover(0, 0, width, height, true, 1);
@@ -243,15 +243,16 @@ function createVideoServer() {
       ctx.font = "900 31px Inter, Arial, sans-serif";
       ctx.fillText(scene.kicker, 70, 200);
 
-      ctx.save();
-      ctx.translate(70, 292);
-      ctx.scale(pop, pop);
       ctx.fillStyle = "#fff8ef";
-      ctx.font = "950 86px Inter, Arial Black, Arial, sans-serif";
+      ctx.font = "900 76px Arial Black, Impact, Arial, sans-serif";
       ctx.shadowColor = "rgba(0,0,0,.4)";
       ctx.shadowBlur = 18;
-      wrapText(scene.title, 0, 0, 940, 86);
+      ctx.save();
+      ctx.translate(70, 292);
+      ctx.scale(Math.max(0.92, Math.min(1.08, pop)), Math.max(0.92, Math.min(1.08, pop)));
+      wrapText(scene.title, 0, 0, 880, 82);
       ctx.restore();
+      ctx.shadowBlur = 0;
 
       ctx.fillStyle = "#cbd1d8";
       ctx.font = "600 34px Inter, Arial, sans-serif";
