@@ -19,6 +19,7 @@ mkdirSync(demoDir, { recursive: true });
     viewport: { width: 1280, height: 720 },
     deviceScaleFactor: 1
   });
+  page.on("console", (message) => console.log(`[browser] ${message.text()}`));
 
   const videoData = readFileSync(inputVideo).toString("base64");
   await page.setContent(`
@@ -31,6 +32,7 @@ mkdirSync(demoDir, { recursive: true });
   `);
 
   const bytes = await page.evaluate(async () => {
+    console.log("loading source video");
     const canvas = document.querySelector("#canvas");
     const source = document.querySelector("#source");
     const ctx = canvas.getContext("2d", { alpha: false });
@@ -39,6 +41,7 @@ mkdirSync(demoDir, { recursive: true });
       source.onloadedmetadata = resolve;
       source.onerror = reject;
     });
+    console.log(`metadata loaded: ${source.duration}s`);
 
     const duration = source.duration || 20.25;
     const audioContext = new AudioContext({ sampleRate: 48000 });
@@ -128,7 +131,9 @@ mkdirSync(demoDir, { recursive: true });
     };
 
     await audioContext.resume();
+    console.log("audio context ready");
     const audioStart = scheduleAudio();
+    console.log("audio scheduled");
 
     let drawing = true;
     function draw() {
@@ -139,20 +144,27 @@ mkdirSync(demoDir, { recursive: true });
 
     draw();
     recorder.start(250);
+    console.log("recorder started");
     await new Promise((resolve) => setTimeout(resolve, Math.max(0, (audioStart - audioContext.currentTime) * 1000)));
     await source.play();
+    console.log("source playing");
     await new Promise((resolve) => {
       source.onended = resolve;
+      setTimeout(resolve, Math.ceil((duration + 0.75) * 1000));
     });
 
     drawing = false;
-    recorder.stop();
-    await new Promise((resolve) => {
+    console.log("stopping recorder");
+    const stopped = new Promise((resolve) => {
       recorder.onstop = resolve;
     });
+    recorder.stop();
+    await stopped;
+    console.log(`recorder stopped: ${chunks.length} chunks`);
 
     await audioContext.close();
     const blob = new Blob(chunks, { type: mimeType });
+    console.log(`blob size: ${blob.size}`);
     return Array.from(new Uint8Array(await blob.arrayBuffer()));
   });
 
