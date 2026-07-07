@@ -6,8 +6,47 @@ const { chromium } = require("/Users/matteodelferraro/.cache/codex-runtimes/code
 const root = "/Users/matteodelferraro/Documents/GitHub/CHUG-GRID-PRO";
 const demoDir = join(root, "demo");
 const inputVideo = join(demoDir, "chug-grid-demo-with-audio.webm");
-const outputVideo = join(demoDir, "chug-grid-youtube-short.webm");
-const outputThumb = join(demoDir, "chug-grid-youtube-short-thumb.png");
+const variantId = process.env.SHORT_VARIANT || "explainer";
+const outputBase = variantId === "explainer" ? "chug-grid-youtube-short" : `chug-grid-youtube-short-${variantId}`;
+const outputVideo = join(demoDir, `${outputBase}.webm`);
+const outputThumb = join(demoDir, `${outputBase}-thumb.png`);
+
+const variants = {
+  explainer: {
+    kicker: "WHAT IS CHUG-GRID?",
+    title: "MAKE METAL RIFFS IN ODD METERS",
+    detail: "A browser tool that generates playable chug riffs for your DAW.",
+    card: "Generate riffs. Export MIDI.",
+    footer: "LINK IN BIO / TRY IT FREE",
+    thumbTime: 1.15
+  },
+  weird: {
+    kicker: "RIFFS IN 7/8?",
+    title: "THIS FREE TOOL GENERATES WEIRD METAL RIFFS",
+    detail: "Pick an odd meter, generate a chug pattern, export MIDI.",
+    card: "Free odd-meter riff generator",
+    footer: "TRY IT FREE AT CHUGGRID.COM",
+    thumbTime: 1.15
+  },
+  orbit: {
+    kicker: "SEE THE RHYTHM MOVE",
+    title: "WHY DOES THIS RIFF FEEL SO WRONG?",
+    detail: "The orbit view shows where the riff lands against the barline.",
+    card: "Visualize the loop. Export MIDI.",
+    footer: "CHUGGRID.COM",
+    thumbTime: 9.5
+  },
+  daw: {
+    kicker: "FOR METAL PRODUCERS",
+    title: "FROM CHUG IDEA TO MIDI IN SECONDS",
+    detail: "Generate a modern metal riff and drop it straight into your DAW.",
+    card: "Generate MIDI riffs fast",
+    footer: "FREE TOOL: CHUGGRID.COM",
+    thumbTime: 13.2
+  }
+};
+
+const variant = variants[variantId] || variants.explainer;
 
 mkdirSync(demoDir, { recursive: true });
 
@@ -56,7 +95,7 @@ function createVideoServer() {
 
   await page.goto(videoServer.url, { waitUntil: "domcontentloaded" });
 
-  const result = await page.evaluate(async () => {
+  const result = await page.evaluate(async (variantSpec) => {
     const canvas = document.querySelector("#canvas");
     const source = document.querySelector("#source");
     const ctx = canvas.getContext("2d", { alpha: false });
@@ -192,9 +231,9 @@ function createVideoServer() {
       {
         start: 0,
         end: 2.65,
-        title: "MAKE METAL RIFFS IN ODD METERS",
-        kicker: "WHAT IS CHUG-GRID?",
-        detail: "A browser tool that generates playable chug riffs for your DAW."
+        title: variantSpec.title,
+        kicker: variantSpec.kicker,
+        detail: variantSpec.detail
       },
       {
         start: 2.65,
@@ -320,7 +359,7 @@ function createVideoServer() {
 
       ctx.fillStyle = "#fff";
       ctx.font = "950 46px Inter, Arial, sans-serif";
-      ctx.fillText("Generate riffs. Export MIDI.", 112, 1522);
+      ctx.fillText(variantSpec.card, 112, 1522);
       ctx.fillStyle = "#efb76d";
       ctx.font = "900 38px Inter, Arial, sans-serif";
       ctx.fillText("chuggrid.com", 112, 1586);
@@ -328,7 +367,7 @@ function createVideoServer() {
       ctx.fillStyle = "rgba(255,255,255,.82)";
       ctx.font = "800 28px Inter, Arial, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("LINK IN BIO / TRY IT FREE", width / 2, 1780);
+      ctx.fillText(variantSpec.footer, width / 2, 1780);
       ctx.textAlign = "left";
     }
 
@@ -442,7 +481,7 @@ function createVideoServer() {
     source.pause();
     await new Promise((resolve) => {
       source.onseeked = resolve;
-      source.currentTime = 1.15;
+      source.currentTime = variantSpec.thumbTime;
       setTimeout(resolve, 1000);
     });
     drawFrame();
@@ -456,7 +495,7 @@ function createVideoServer() {
       video: Array.from(new Uint8Array(await videoBlob.arrayBuffer())),
       thumb: thumbData
     };
-  });
+  }, variant);
 
   writeFileSync(outputVideo, Buffer.from(result.video));
   writeFileSync(outputThumb, Buffer.from(result.thumb, "base64"));
