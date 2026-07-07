@@ -62,3 +62,273 @@ h1{margin:16px 0 18px;font-size:clamp(56px,8vw,126px);line-height:.84;letter-spa
   border:2px solid var(--amberBright);
   box-shadow:0 0 16px rgba(239,183,109,.45);
 }
+
+.oracleShell{
+  min-height:100svh;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  background:
+    radial-gradient(circle at 20% 8%,rgba(91,210,208,.18),transparent 28%),
+    radial-gradient(circle at 84% 14%,rgba(239,183,109,.22),transparent 30%),
+    linear-gradient(160deg,#07100f 0%,#140b16 48%,#050506 100%);
+}
+
+.oracleApp{
+  width:min(100%,430px);
+  min-height:min(880px,calc(100svh - 36px));
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  padding:14px 14px 18px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:34px;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.025)),
+    rgba(8,10,13,.86);
+  box-shadow:0 38px 120px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.08);
+  backdrop-filter:blur(22px);
+}
+
+.phoneStatus{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:24px;
+  padding:0 10px;
+  color:rgba(244,239,231,.82);
+  font-size:13px;
+  font-weight:850;
+}
+
+.oracleHeader{
+  padding:18px 8px 4px;
+}
+
+.oracleHeader p,.oracleQuestion label,.oracleResult span,.oracleHint span{
+  margin:0;
+  color:var(--amberBright);
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  font-size:11px;
+  font-weight:950;
+}
+
+.oracleHeader h1{
+  margin:10px 0 10px;
+  max-width:360px;
+  font-size:clamp(46px,13vw,66px);
+  line-height:.9;
+  letter-spacing:0;
+}
+
+.oracleHeader>span{
+  display:block;
+  max-width:340px;
+  color:rgba(244,239,231,.68);
+  font-size:16px;
+  line-height:1.45;
+}
+
+.oracleQuestion{
+  display:grid;
+  gap:10px;
+  padding:14px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:22px;
+  background:rgba(255,255,255,.045);
+}
+
+.oracleQuestion textarea{
+  width:100%;
+  min-height:92px;
+  resize:none;
+  border:0;
+  outline:0;
+  border-radius:16px;
+  padding:14px;
+  color:var(--text);
+  background:rgba(2,3,4,.45);
+  font:inherit;
+  font-size:16px;
+  line-height:1.4;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);
+}
+
+.oracleQuestion textarea::placeholder{
+  color:rgba(244,239,231,.36);
+}
+
+.oracleQuestion div{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  color:rgba(244,239,231,.55);
+  font-size:12px;
+  font-weight:800;
+}
+
+.oracleCard{
+  position:relative;
+  min-height:274px;
+  perspective:1200px;
+}
+
+.cardFace{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  padding:24px;
+  text-align:center;
+  border:1px solid rgba(239,183,109,.34);
+  border-radius:28px;
+  backface-visibility:hidden;
+  transition:transform .62s cubic-bezier(.2,.7,.2,1);
+  box-shadow:0 24px 72px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.cardBack{
+  background:
+    linear-gradient(135deg,rgba(91,210,208,.13),transparent 32%),
+    repeating-linear-gradient(45deg,rgba(255,255,255,.035) 0 1px,transparent 1px 12px),
+    linear-gradient(160deg,#171117,#080a0c);
+}
+
+.cardBack span,.cardFront span{
+  width:74px;
+  height:74px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(239,183,109,.48);
+  border-radius:50%;
+  color:var(--amberBright);
+  font-size:42px;
+  font-weight:950;
+  box-shadow:0 0 34px rgba(239,183,109,.18);
+}
+
+.cardBack strong{
+  max-width:220px;
+  color:rgba(244,239,231,.76);
+  font-size:20px;
+  line-height:1.2;
+}
+
+.cardFront{
+  transform:rotateY(180deg);
+  background:
+    radial-gradient(circle at 50% 24%,rgba(239,183,109,.24),transparent 34%),
+    linear-gradient(160deg,#1b1217,#0b1111 54%,#07080a);
+}
+
+.oracleCard.isRevealed .cardBack{
+  transform:rotateY(-180deg);
+}
+
+.oracleCard.isRevealed .cardFront{
+  transform:rotateY(0);
+}
+
+.cardFront p{
+  margin:0;
+  color:var(--cyan);
+  text-transform:uppercase;
+  letter-spacing:.16em;
+  font-size:11px;
+  font-weight:950;
+}
+
+.cardFront h2{
+  font-size:34px;
+  line-height:1;
+  letter-spacing:0;
+}
+
+.cardFront strong{
+  max-width:320px;
+  color:rgba(244,239,231,.78);
+  font-size:16px;
+  line-height:1.45;
+}
+
+.oracleResult{
+  display:grid;
+  gap:10px;
+}
+
+.oracleResult div,.oracleHint{
+  padding:14px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:20px;
+  background:rgba(255,255,255,.045);
+}
+
+.oracleResult strong{
+  display:block;
+  margin-top:8px;
+  color:var(--text);
+  font-size:17px;
+  line-height:1.35;
+}
+
+.oracleHint{
+  text-align:center;
+}
+
+.oracleHint span{
+  color:rgba(244,239,231,.54);
+  letter-spacing:.08em;
+}
+
+.oracleActions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:auto;
+}
+
+.oracleActions button,.resetButton{
+  min-height:54px;
+  border-radius:18px;
+  letter-spacing:.04em;
+  font-size:12px;
+}
+
+.drawButton{
+  background:linear-gradient(180deg,#55d2cd,#176968);
+  border-color:rgba(91,210,208,.52);
+  color:#031515;
+}
+
+.coinButton{
+  background:linear-gradient(180deg,#efb76d,#7f3b20);
+  border-color:rgba(239,183,109,.58);
+}
+
+.resetButton{
+  width:100%;
+  min-height:46px;
+  background:rgba(255,255,255,.035);
+}
+
+@media(max-width:460px){
+  .oracleShell{
+    padding:0;
+  }
+
+  .oracleApp{
+    width:100%;
+    min-height:100svh;
+    border-radius:0;
+    border:0;
+    padding:10px 12px max(16px,env(safe-area-inset-bottom));
+  }
+
+  .oracleCard{
+    min-height:250px;
+  }
+}

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -28,6 +29,13 @@ export const metadata: Metadata = {
     title: "CHUG-GRID PRO",
     description: "Playable polymetric riff generator and rhythm lab for modern metal guitarists."
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#07100f"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
