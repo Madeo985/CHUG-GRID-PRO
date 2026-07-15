@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
 
 const gumroadUrl = "https://matteoferraro.gumroad.com/l/inznd";
+const premiumPackUrl = "https://matteoferraro.gumroad.com/l/itawg";
 
 const useCases = [
   "Generate odd-meter metal riff ideas",
   "Export MIDI loops for your DAW",
   "Study polymeter and barline realignment",
   "Create MusicXML sketches for notation workflows"
+];
+
+const adProofPoints = [
+  "No DAW setup required",
+  "Odd meters and polymetric cycles",
+  "MIDI and MusicXML export",
+  "Free 10-riff starter pack"
 ];
 
 const faqs = [
@@ -128,6 +136,31 @@ export default function FreeMetalMidiRiffGeneratorPage() {
             Get the free pack
           </a>
         </article>
+      </section>
+
+      <section className="adLandingSection" aria-labelledby="ad-offer-title">
+        <div className="adOfferCopy">
+          <span className="kicker">FOR PRODUCERS AND GUITARISTS</span>
+          <h2 id="ad-offer-title">Start with the free riffs, then build the full session.</h2>
+          <p>
+            If you came here from a metal production post, start with the free pack first. You get
+            10 odd-meter MIDI riffs to test in your DAW, then the full pack adds 50 more modern
+            metal writing seeds when you want a bigger library.
+          </p>
+          <div className="heroActions">
+            <a className="primary" href={gumroadUrl} target="_blank" rel="noreferrer">
+              Download 10 free riffs
+            </a>
+            <a className="secondary" href={premiumPackUrl} target="_blank" rel="noreferrer">
+              Get the 50-riff pack
+            </a>
+          </div>
+        </div>
+        <div className="adProofGrid" aria-label="Why try CHUG-GRID">
+          {adProofPoints.map((item) => (
+            <span key={item}>{item}</span>
+          ))}
+        </div>
       </section>
 
       <section className="section">
